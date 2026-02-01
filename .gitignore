@@ -32,6 +32,9 @@ var/
 htmlcov/
 .pytest_cache/
 
+# Sisyphus work tracking
+.sisyphus/
+
 # PyInstaller
 *.manifest
 *.spec
