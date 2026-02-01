@@ -1,0 +1,40 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Inspect Python Environment",
+      "type": "shell",
+      "command": "python scripts/inspect_env.py",
+      "group": "none",
+      "presentation": { "reveal": "always" }
+    },
+    {
+      "label": "Run Code Analyzer",
+      "type": "shell",
+      "command": "python scripts/code_analyzer.py ${file}",
+      "group": "none",
+      "presentation": { "reveal": "always" }
+    },
+    {
+      "label": "Lookup Docs for Object",
+      "type": "shell",
+      "command": "python scripts/doc_lookup.py ${input:objectName}",
+      "group": "none",
+      "presentation": { "reveal": "always" }
+    },
+    {
+      "label": "Run Pytest",
+      "type": "shell",
+      "command": "pytest --maxfail=1 --disable-warnings",
+      "group": "test",
+      "presentation": { "reveal": "always" }
+    }
+  ],
+  "inputs": [
+    {
+      "id": "objectName",
+      "type": "promptString",
+      "description": "Enter Python object (e.g., pandas.DataFrame.merge)"
+    }
+  ]
+}
