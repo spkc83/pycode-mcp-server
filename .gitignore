@@ -35,6 +35,10 @@ htmlcov/
 # Sisyphus work tracking
 .sisyphus/
 
+# Cache files (generated at runtime)
+references/local_docs_index.json
+references/skill_usage.log
+
 # PyInstaller
 *.manifest
 *.spec
