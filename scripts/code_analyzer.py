@@ -14,7 +14,80 @@ import ast
 import json
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
+
+
+# Python 3.8 compatibility: ast.unparse was added in Python 3.9
+def _ast_unparse(node: ast.AST) -> str:
+    """Convert an AST node back to source code string.
+    
+    Uses ast.unparse on Python 3.9+, falls back to a simple implementation
+    for Python 3.8.
+    """
+    if hasattr(ast, 'unparse'):
+        return ast.unparse(node)
+    
+    # Fallback for Python 3.8
+    if isinstance(node, ast.Name):
+        return node.id
+    elif isinstance(node, ast.Attribute):
+        return f"{_ast_unparse(node.value)}.{node.attr}"
+    elif isinstance(node, ast.Subscript):
+        return f"{_ast_unparse(node.value)}[{_ast_unparse(node.slice)}]"
+    elif isinstance(node, ast.Index):  # Python 3.8 only
+        return _ast_unparse(node.value)  # type: ignore
+    elif isinstance(node, ast.Constant):
+        return repr(node.value)
+    elif isinstance(node, ast.Num):  # Python 3.8 compat
+        return repr(node.n)  # type: ignore
+    elif isinstance(node, ast.Str):  # Python 3.8 compat
+        return repr(node.s)  # type: ignore
+    elif isinstance(node, ast.List):
+        return f"[{', '.join(_ast_unparse(e) for e in node.elts)}]"
+    elif isinstance(node, ast.Tuple):
+        return f"({', '.join(_ast_unparse(e) for e in node.elts)})"
+    elif isinstance(node, ast.Dict):
+        pairs = []
+        for k, v in zip(node.keys, node.values):
+            if k is None:
+                pairs.append(f"**{_ast_unparse(v)}")
+            else:
+                pairs.append(f"{_ast_unparse(k)}: {_ast_unparse(v)}")
+        return "{" + ", ".join(pairs) + "}"
+    elif isinstance(node, ast.Call):
+        args = [_ast_unparse(a) for a in node.args]
+        kwargs = [f"{kw.arg}={_ast_unparse(kw.value)}" for kw in node.keywords]
+        return f"{_ast_unparse(node.func)}({', '.join(args + kwargs)})"
+    elif isinstance(node, ast.BinOp):
+        op_map = {
+            ast.Add: '+', ast.Sub: '-', ast.Mult: '*', ast.Div: '/',
+            ast.Mod: '%', ast.Pow: '**', ast.BitOr: '|', ast.BitAnd: '&',
+        }
+        op = op_map.get(type(node.op), '?')
+        return f"{_ast_unparse(node.left)} {op} {_ast_unparse(node.right)}"
+    elif isinstance(node, ast.UnaryOp):
+        op_map = {ast.Not: 'not ', ast.USub: '-', ast.UAdd: '+'}
+        op = op_map.get(type(node.op), '')
+        return f"{op}{_ast_unparse(node.operand)}"
+    elif isinstance(node, ast.NameConstant):  # Python 3.8 compat
+        return repr(node.value)  # type: ignore
+    elif isinstance(node, ast.Ellipsis):
+        return "..."
+    else:
+        # Fallback: return the class name
+        return f"<{type(node).__name__}>"
+
+
+def _ast_dump(node: ast.AST, indent: int = 2) -> str:
+    """Dump an AST node with optional indentation.
+    
+    Uses ast.dump with indent on Python 3.9+, falls back to no indent
+    for Python 3.8.
+    """
+    if sys.version_info >= (3, 9):
+        return ast.dump(node, indent=indent)
+    else:
+        return ast.dump(node)
 
 
 class CodeVisitor(ast.NodeVisitor):
@@ -52,12 +125,12 @@ class CodeVisitor(ast.NodeVisitor):
             if isinstance(dec, ast.Name):
                 names.append(dec.id)
             elif isinstance(dec, ast.Attribute):
-                names.append(ast.unparse(dec))
+                names.append(_ast_unparse(dec))
             elif isinstance(dec, ast.Call):
                 if isinstance(dec.func, ast.Name):
                     names.append(dec.func.id)
                 elif isinstance(dec.func, ast.Attribute):
-                    names.append(ast.unparse(dec.func))
+                    names.append(_ast_unparse(dec.func))
         return names
     
     def _extract_arguments(self, args: ast.arguments) -> List[Dict[str, Any]]:
@@ -68,12 +141,12 @@ class CodeVisitor(ast.NodeVisitor):
         for i, arg in enumerate(args.args):
             param: Dict[str, Any] = {"name": arg.arg}
             if arg.annotation:
-                param["type"] = ast.unparse(arg.annotation)
+                param["type"] = _ast_unparse(arg.annotation)
             
             default_idx = i - defaults_offset
             if default_idx >= 0 and default_idx < len(args.defaults):
                 try:
-                    param["default"] = ast.unparse(args.defaults[default_idx])
+                    param["default"] = _ast_unparse(args.defaults[default_idx])
                 except Exception:
                     param["default"] = "..."
             
@@ -82,12 +155,12 @@ class CodeVisitor(ast.NodeVisitor):
         for i, arg in enumerate(args.kwonlyargs):
             param = {"name": arg.arg, "keyword_only": True}
             if arg.annotation:
-                param["type"] = ast.unparse(arg.annotation)
+                param["type"] = _ast_unparse(arg.annotation)
             if i < len(args.kw_defaults) and args.kw_defaults[i] is not None:
                 kw_default = args.kw_defaults[i]
                 if kw_default is not None:
                     try:
-                        param["default"] = ast.unparse(kw_default)
+                        param["default"] = _ast_unparse(kw_default)
                     except Exception:
                         param["default"] = "..."
             params.append(param)
@@ -95,13 +168,13 @@ class CodeVisitor(ast.NodeVisitor):
         if args.vararg:
             param = {"name": f"*{args.vararg.arg}", "variadic": True}
             if args.vararg.annotation:
-                param["type"] = ast.unparse(args.vararg.annotation)
+                param["type"] = _ast_unparse(args.vararg.annotation)
             params.append(param)
         
         if args.kwarg:
             param = {"name": f"**{args.kwarg.arg}", "variadic": True}
             if args.kwarg.annotation:
-                param["type"] = ast.unparse(args.kwarg.annotation)
+                param["type"] = _ast_unparse(args.kwarg.annotation)
             params.append(param)
         
         return params
@@ -136,7 +209,7 @@ class CodeVisitor(ast.NodeVisitor):
             func_info["async"] = True
         
         if node.returns:
-            func_info["returns"] = ast.unparse(node.returns)
+            func_info["returns"] = _ast_unparse(node.returns)
         
         if decorators:
             func_info["decorators"] = decorators
@@ -159,7 +232,7 @@ class CodeVisitor(ast.NodeVisitor):
             if dec not in self.decorators_used:
                 self.decorators_used.append(dec)
         
-        bases = [ast.unparse(b) for b in node.bases]
+        bases = [_ast_unparse(b) for b in node.bases]
         
         class_info: Dict[str, Any] = {
             "name": node.name,
@@ -192,7 +265,7 @@ class CodeVisitor(ast.NodeVisitor):
                     method_info["async"] = True
                 
                 if item.returns:
-                    method_info["returns"] = ast.unparse(item.returns)
+                    method_info["returns"] = _ast_unparse(item.returns)
                 
                 if method_decorators:
                     method_info["decorators"] = method_decorators
@@ -211,10 +284,10 @@ class CodeVisitor(ast.NodeVisitor):
             elif isinstance(item, ast.AnnAssign) and isinstance(item.target, ast.Name):
                 attr_info: Dict[str, Any] = {"name": item.target.id}
                 if item.annotation:
-                    attr_info["type"] = ast.unparse(item.annotation)
+                    attr_info["type"] = _ast_unparse(item.annotation)
                 if item.value:
                     try:
-                        attr_info["default"] = ast.unparse(item.value)
+                        attr_info["default"] = _ast_unparse(item.value)
                     except Exception:
                         pass
                 class_info["attributes"].append(attr_info)
@@ -228,7 +301,7 @@ class CodeVisitor(ast.NodeVisitor):
                 if isinstance(target, ast.Name) and not target.id.startswith('_'):
                     var_info: Dict[str, Any] = {"name": target.id, "line": node.lineno}
                     try:
-                        var_info["value"] = ast.unparse(node.value)[:50]
+                        var_info["value"] = _ast_unparse(node.value)[:50]
                     except Exception:
                         pass
                     self.global_variables.append(var_info)
@@ -240,11 +313,11 @@ class CodeVisitor(ast.NodeVisitor):
                 var_info: Dict[str, Any] = {
                     "name": node.target.id,
                     "line": node.lineno,
-                    "type": ast.unparse(node.annotation),
+                    "type": _ast_unparse(node.annotation),
                 }
                 if node.value:
                     try:
-                        var_info["value"] = ast.unparse(node.value)[:50]
+                        var_info["value"] = _ast_unparse(node.value)[:50]
                     except Exception:
                         pass
                 self.global_variables.append(var_info)
@@ -314,7 +387,7 @@ def analyze_source(source: str) -> Dict[str, Any]:
 def analyze_source_raw(source: str) -> str:
     """Return raw AST dump for backwards compatibility."""
     tree = ast.parse(source)
-    return ast.dump(tree, indent=2)
+    return _ast_dump(tree, indent=2)
 
 
 def analyze_file(path: str, raw: bool = False) -> Dict[str, Any] | str:
