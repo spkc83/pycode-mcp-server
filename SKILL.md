@@ -1,41 +1,47 @@
 ---
 name: python-code-assistant
 description: |
-  Generates, analyzes, debugs and tests Python code using only local context.  This
-  skill inspects the local Python environment, reads docstrings and offline
-  documentation from installed packages, and synthesizes example patterns found
-  in the workspace to produce high‑quality solutions.  It never performs
-  external web searches to gather information, instead relying on what is
-  available locally.  When a requested library is missing, the skill returns
-  the appropriate command to install it via pip or conda.
+  Generates, analyzes, debugs, refactors and tests Python code using Jedi-powered
+  local intelligence.  This skill uses Jedi for accurate type inference,
+  semantic search, refactoring, and diagnostics.  It inspects the local Python
+  environment, reads docstrings and documentation from installed packages, builds
+  project-level import graphs, and synthesizes example patterns found in the
+  workspace to produce high‑quality solutions.  It never performs external web
+  searches to gather information, instead relying on what is available locally.
+  When a requested library is missing, the skill returns the appropriate command
+  to install it via pip or conda.
 license: MIT
 compatibility: |
   Works with any agent runtime that supports the open Agent Skills
   specification and can execute shell and Python commands (e.g. Claude Code,
   OpenCode, VS Code Copilot agents).  The skill assumes access to the local
-  filesystem and a Python interpreter.
+  filesystem and a Python ≥3.9 interpreter with Jedi installed.
 allowed-tools: Bash Python Read Write
 metadata:
   author: spkc83 & Opencode
-  version: "2.0.0"
+  version: "3.0.0"
 ---
 
 # Python Code Assistant Skill
 
 This skill equips an agent to build and refine Python programs without
-reaching out to the internet for help.  It introspects the local
-environment, examines code and documentation on disk, and proposes
-installation steps for missing dependencies.  Typical use cases include
-generating new scripts, debugging existing code, refactoring functions,
-inspecting package APIs and versions, and writing tests.
+reaching out to the internet for help.  It uses **Jedi** as the primary
+code intelligence engine for accurate documentation lookup, type inference,
+semantic search, and refactoring.  It also introspects the local environment,
+examines code and documentation on disk, builds project-level import graphs,
+and proposes installation steps for missing dependencies.
 
 ## Purpose
 
 * Detect which packages and versions are already installed.
 * Map package names to import names (e.g., `Pillow` → `PIL`).
 * Retrieve structured documentation for Python objects including signatures,
-  parameters, types, examples, and related functions.
+  parameters, types, examples, and related functions — powered by Jedi.
 * Parse existing Python files to understand their structure and dependencies.
+* Analyze entire projects: import graphs, circular dependencies, cross-references.
+* Perform semantic search across projects (find functions/classes by name).
+* Refactor code safely: rename symbols, extract variables/functions, inline.
+* Run diagnostics: syntax errors, undefined names, unused imports, type checking.
 * Generate new code using idiomatic patterns found locally.
 * Suggest pip or conda commands to install missing packages when needed.
 * Produce simple unit tests and run them to validate generated code.
@@ -67,7 +73,7 @@ conda install <package> -y
 
 ### 2. Lookup Documentation
 
-Get structured documentation for any Python object:
+Get structured documentation for any Python object (Jedi-powered):
 
 ```bash
 # Get structured JSON documentation
@@ -99,20 +105,95 @@ python scripts/code_analyzer.py path/to/file.py --raw
 
 The structured output includes:
 - **imports** and **from_imports**: All import statements
-- **third_party_dependencies**: Non-stdlib dependencies
+- **third_party_dependencies**: Non-stdlib dependencies (detected using ~200 stdlib modules)
 - **functions**: Function names, signatures, parameters, decorators
 - **classes**: Class names, bases, methods, attributes
 - **decorators_used**: All decorators found in the code
 
-### 4. Generate Tests and Validate Code
+### 4. Analyze an Entire Project
+
+Get project-level insights:
+
+```bash
+# Full project analysis
+python scripts/project_analyzer.py /path/to/project
+
+# Import graph only
+python scripts/project_analyzer.py /path/to/project --graph
+
+# Detect circular dependencies
+python scripts/project_analyzer.py /path/to/project --cycles
+
+# Include cross-references (slower, uses Jedi)
+python scripts/project_analyzer.py /path/to/project --cross-refs
+```
+
+The output includes:
+- **files**: Per-file analysis (functions, classes, dependencies)
+- **import_graph**: Module-to-module dependency graph
+- **circular_dependencies**: Detected import cycles
+- **third_party_dependencies**: All external packages used
+- **summary**: Aggregate statistics
+
+### 5. Code Intelligence (Jedi Engine)
+
+Use Jedi for advanced code intelligence:
+
+```bash
+# Get autocompletions
+python scripts/jedi_engine.py completions --file path.py --line 10 --col 5
+
+# Go to definition / type inference
+python scripts/jedi_engine.py definitions --file path.py --line 10 --col 5
+
+# Find all references
+python scripts/jedi_engine.py references --file path.py --line 10 --col 5
+
+# Semantic search across a project
+python scripts/jedi_engine.py search --query "DataFrame" --project /path
+
+# Rename a symbol safely
+python scripts/jedi_engine.py rename --file path.py --line 10 --col 5 --new-name "better_name"
+
+# Get hover information
+python scripts/jedi_engine.py hover --file path.py --line 10 --col 5
+
+# Check Jedi status
+python scripts/jedi_engine.py status
+```
+
+### 6. Run Diagnostics
+
+Check code quality with unified diagnostics:
+
+```bash
+# All available checks
+python scripts/diagnostics.py file.py
+
+# Syntax errors only
+python scripts/diagnostics.py file.py --syntax-only
+
+# Include type checking (mypy/pyright)
+python scripts/diagnostics.py file.py --type-check
+
+# Project-wide diagnostics
+python scripts/diagnostics.py /path/to/project/ --summary
+```
+
+Diagnostic sources:
+- **Jedi**: Syntax errors and some semantic issues
+- **Pyflakes**: Undefined names, unused imports, redefined variables
+- **mypy/pyright**: Full type checking (when installed)
+
+### 7. Generate Tests and Validate Code
 
 When producing new code or refactoring existing functions, also write
 unit tests. Run tests locally (e.g., via `pytest`) and report failures
 back to the user alongside suggested fixes.
 
-### 5. Manage the Cache
+### 8. Manage the Cache
 
-Documentation lookups are cached for performance:
+Documentation lookups are cached for performance (7-day TTL):
 
 ```bash
 # View cache statistics
@@ -123,6 +204,63 @@ python scripts/cache.py --clear
 ```
 
 ## Scripts Reference
+
+### `scripts/jedi_engine.py`
+
+Jedi-powered code intelligence engine.
+
+| Command | Description |
+|---------|-------------|
+| `completions` | Get autocompletion suggestions |
+| `definitions` | Go to definition / type inference |
+| `references` | Find all references to a symbol |
+| `goto` | Go to definition (without following imports) |
+| `hover` | Get hover information (type + docstring) |
+| `signatures` | Get function signature help |
+| `search` | Semantic search across a project |
+| `rename` | Rename a symbol safely across files |
+| `diagnostics` | Get syntax error diagnostics |
+| `status` | Check Jedi availability |
+
+### `scripts/project_analyzer.py`
+
+Project-level Python code analysis.
+
+| Flag | Description |
+|------|-------------|
+| `--exclude PATTERNS` | Comma-separated glob patterns to exclude |
+| `--depth N` | Maximum directory depth to traverse |
+| `--graph` | Show only the import graph |
+| `--cycles` | Show only circular dependencies |
+| `--cross-refs` | Include Jedi-based cross-references |
+
+### `scripts/diagnostics.py`
+
+Unified diagnostics from multiple sources.
+
+| Flag | Description |
+|------|-------------|
+| `--syntax-only` | Only check for syntax errors |
+| `--type-check` | Include type checking (mypy/pyright) |
+| `--summary` | Project-wide diagnostic summary |
+
+### `scripts/doc_lookup.py`
+
+Fetches structured documentation using Jedi (primary) with inspect/pydoc fallback.
+
+| Flag | Description |
+|------|-------------|
+| `--no-cache` | Bypass the documentation cache |
+| `--raw` | Return raw pydoc text instead of structured JSON |
+
+### `scripts/code_analyzer.py`
+
+Parses Python source code and returns structured information.
+
+| Flag | Description |
+|------|-------------|
+| `--raw` | Output raw AST dump (legacy mode) |
+| `--json` | Force JSON output |
 
 ### `scripts/inspect_env.py`
 
@@ -136,69 +274,48 @@ Lists installed packages with comprehensive metadata.
 | `--env` | Show Python environment info only |
 | `--no-cache` | Skip cache update |
 
-**Output fields** (for `--package`):
-- `name`: Package name
-- `version`: Installed version
-- `import_names`: Actual import names (e.g., `["PIL"]` for Pillow)
-- `summary`: Package description
-- `dependencies`: List of dependencies
-- `location`: Installation path
-- `main_exports`: Main classes/functions exported
-
-### `scripts/doc_lookup.py`
-
-Fetches structured documentation for Python objects.
-
-| Flag | Description |
-|------|-------------|
-| `--no-cache` | Bypass the documentation cache |
-| `--raw` | Return raw pydoc text instead of structured JSON |
-
-**Output fields** (structured mode):
-- `name`: Object name
-- `found`: Whether the object was found
-- `object_type`: `function`, `class`, `module`, `builtin`
-- `import_statement`: How to import the object
-- `signature`: Full signature with types
-- `short_description`: First line of docstring
-- `full_docstring`: Complete documentation
-- `parameters`: List of parameters with types and defaults
-- `returns`: Return type info
-- `examples`: Code examples from docstrings
-- `raises`: Exceptions that may be raised
-- `related`: Related functions/classes
-- `methods`: (for classes) List of methods
-- `source_file`: Path to source code
-
-### `scripts/code_analyzer.py`
-
-Parses Python source code and returns structured information.
-
-| Flag | Description |
-|------|-------------|
-| `--raw` | Output raw AST dump (legacy mode) |
-| `--json` | Force JSON output |
-
-**Output fields**:
-- `file_name`: Name of analyzed file
-- `module_description`: Module docstring summary
-- `imports` / `from_imports`: Import statements
-- `third_party_dependencies`: Non-stdlib imports
-- `functions`: Functions with signatures, parameters, decorators
-- `classes`: Classes with methods, attributes, bases
-- `global_variables`: Module-level variables
-- `decorators_used`: All decorators found
-- `summary`: Counts of functions, classes, imports
-
 ### `scripts/cache.py`
 
-Manages the JSON-based documentation cache.
+Manages the JSON-based documentation cache with LFU eviction and TTL.
 
 | Flag | Description |
 |------|-------------|
 | `--stats` | Display cache statistics |
 | `--clear` | Reset the entire cache |
 | `--path FILE` | Use a custom cache file path |
+
+### `scripts/benchmark.py`
+
+Performance benchmark runner for the skill. Measures execution time, memory usage, and compares approaches.
+
+| Command/Flag | Description |
+|--------------|-------------|
+| `--suite` | Run a specific benchmarking suite (e.g. `doc_lookup`) |
+| `--iterations` | Number of iterations per benchmark (default: 20) |
+| `--format` | Output format (`markdown`, `json`, `table`) |
+
+### `scripts/agent_eval.py`
+
+Agent evaluation harness for benchmarking coding agents with/without the skill.
+
+| Command | Description |
+|---------|-------------|
+| `list-tasks` | List all evaluation tasks |
+| `record` | Record an evaluation run manually |
+| `parse-logs` | Parse agent conversation logs to extract metrics |
+| `compare` | Compare results between with-skill and without-skill runs |
+| `report` | Generate a full evaluation report |
+
+### `scripts/token_estimator.py`
+
+Token cost estimator to calculate token and cost savings from using the skill.
+
+| Command/Flag | Description |
+|--------------|-------------|
+| `--compare` | Compare a specific scenario (e.g., `doc_lookup json.dumps`) |
+| `--estimate` | Estimate tokens for a string of text |
+| `--estimate-file` | Estimate tokens for a file |
+| `--model` | LLM model to use for cost estimation (default: `claude-3.5-sonnet`) |
 
 ### `scripts/health_check.py`
 
@@ -208,37 +325,24 @@ Quick health check to verify all skill components are working correctly.
 python scripts/health_check.py
 ```
 
-**Output**: Verifies that `doc_lookup.py`, `inspect_env.py`, `code_analyzer.py`,
-and `cache.py` are all functioning correctly. Returns exit code 0 on success.
-
 ### `scripts/debug_wrapper.py`
 
 Debug wrapper that logs all skill invocations for troubleshooting.
 
 ```bash
-# Look up documentation with logging
 python scripts/debug_wrapper.py doc_lookup json.dumps
-
-# Inspect environment with logging
-python scripts/debug_wrapper.py inspect_env --find-import PIL
-
-# Analyze code with logging
-python scripts/debug_wrapper.py code_analyzer path/to/file.py
+python scripts/debug_wrapper.py jedi_engine --search DataFrame .
+python scripts/debug_wrapper.py project_analyzer /path/to/project
+python scripts/debug_wrapper.py diagnostics path/to/file.py
 ```
 
 **Log location**: `references/skill_usage.log`
-
-Each log entry contains:
-- `timestamp`: When the script was called
-- `script`: Which script was invoked
-- `args`: Arguments passed
-- `result_preview`: First 500 characters of the output
 
 ## Cache Details
 
 The cache is stored at `references/local_docs_index.json` and contains:
 - **Package tracking**: Hash of installed packages to detect environment changes
-- **Docstring cache**: Up to 500 entries with LFU eviction
+- **Docstring cache**: Up to 500 entries with LFU eviction and 7-day TTL
 - **Statistics**: Cache hits, misses, and eviction counts
 
 When packages change (detected via hash), all cached docstrings are invalidated
