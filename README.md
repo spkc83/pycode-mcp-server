@@ -5,127 +5,141 @@ agents generate, analyze, test and debug Python code without resorting
 to external web searches.  It follows the open [Agent Skills
 specification](https://agentskills.io/specification?utm_source=chatgpt.com)
 and is ready to drop into frameworks such as Claude Code, OpenCode and
-VS Code Copilot.  The skill introspects the local Python environment,
-consults docstrings of installed packages and examines existing source
-files to provide contextual code generation.  When a requested library
-is missing, it also suggests commands for installing it.
+VS Code Copilot.  The skill introspects the local Python environment,
+uses **Jedi** for intelligent code analysis and documentation,
+examines existing source files, and provides project-level analysis
+capabilities.  When a requested library is missing, it also suggests
+commands for installing it.
 
 ## Contents
 
 ```
 python-code-assistant-skill/
-├── SKILL.md                # Skill definition with description and usage
-├── scripts/                # Helper scripts for environment inspection and docs
-│   ├── inspect_env.py      # Lists installed packages with metadata
-│   ├── doc_lookup.py       # Retrieves structured documentation for Python objects
-│   ├── code_analyzer.py    # Parses Python source and returns structured analysis
-│   ├── cache.py            # JSON-based caching for documentation lookups
-│   ├── health_check.py     # Quick health check to verify skill functionality
-│   └── debug_wrapper.py    # Debug wrapper to log skill usage
+├── SKILL.md                  # Skill definition with description and usage
+├── scripts/                  # Helper scripts for code intelligence
+│   ├── jedi_engine.py        # Jedi-powered completions, search, refactoring, diagnostics
+│   ├── project_analyzer.py   # Project-level analysis, import graphs, cross-references
+│   ├── diagnostics.py        # Unified diagnostics (Jedi + Pyflakes + mypy/pyright)
+│   ├── doc_lookup.py         # Documentation lookup (Jedi primary, inspect fallback)
+│   ├── code_analyzer.py      # AST-based Python source analysis
+│   ├── inspect_env.py        # Environment and package inspection
+│   ├── cache.py              # JSON-based caching with LFU eviction and TTL
+│   ├── benchmark.py          # Performance benchmark runner for timing and memory
+│   ├── agent_eval.py         # Agent evaluation harness for skill benchmarking
+│   ├── token_estimator.py    # Token cost estimation and savings calculation
+│   ├── health_check.py       # Quick health check for all skill components
+│   └── debug_wrapper.py      # Debug wrapper to log skill usage
 ├── references/
 │   └── local_docs_index.json # Cache file for documentation and package tracking
 ├── .vscode/
-│   ├── tasks.json          # Predefined VS Code tasks for easy execution
-│   └── extensions.json     # Recommended extensions for VS Code
+│   ├── tasks.json            # Predefined VS Code tasks for easy execution
+│   └── extensions.json       # Recommended extensions for VS Code
 ├── .github/workflows/
-│   └── ci.yml              # GitHub Actions workflow for CI
+│   └── ci.yml                # GitHub Actions workflow for CI
 ├── tests/
 │   ├── __init__.py
-│   └── test_basic.py       # Comprehensive test suite (48 tests)
-├── pyproject.toml          # Modern Python packaging (PEP 517/518)
-├── CHANGELOG.md            # Version history
-├── VERSION                 # Current version number (2.0.0)
-├── requirements.txt        # Python dependencies for development/CI
-├── LICENSE                 # MIT license
+│   ├── test_basic.py         # Core test suite
+│   ├── test_jedi_engine.py   # Jedi engine tests
+│   ├── test_project_analyzer.py # Project analyzer tests
+│   └── test_diagnostics.py   # Diagnostics tests
+├── pyproject.toml            # Modern Python packaging (PEP 517/518)
+├── CHANGELOG.md              # Version history
+├── VERSION                   # Current version number (3.0.0)
+├── requirements.txt          # Python dependencies
+├── LICENSE                   # MIT license
 ├── .gitignore
-└── README.md               # This file
-```
-python-code-assistant-skill/
-├── SKILL.md                # Skill definition with description and usage
-├── scripts/                # Helper scripts for environment inspection and docs
-│   ├── inspect_env.py
-│   ├── doc_lookup.py
-│   └── code_analyzer.py
-├── references/
-│   └── local_docs_index.json (placeholder for offline docs index)
-├── .vscode/
-│   ├── tasks.json          # Predefined VS Code tasks for easy execution
-│   └── extensions.json     # Recommended extensions for VS Code
-├── .github/workflows/
-│   └── ci.yml              # GitHub Actions workflow for CI
-├── tests/
-│   ├── __init__.py
-│   └── test_basic.py       # Minimal unit test for CI
-├── CHANGELOG.md            # Version history
-├── VERSION                 # Current version number
-├── requirements.txt        # Python dependencies for development/CI
-├── LICENSE                 # MIT license
-├── .gitignore
-└── README.md               # This file
+└── README.md                 # This file
 ```
 
 ## Quick Start
 
-1. **Install dependencies**: install Python ≥3.8 and then run
-   `pip install -r requirements.txt` to install development tools (only
-   `pytest` is required for the provided tests).
+1. **Install dependencies**: install Python ≥3.9 and then run
+   `pip install -r requirements.txt` to install Jedi, pytest, and ruff.
 
 2. **Inspect your environment**:
 
    ```bash
    python scripts/inspect_env.py
    ```
-   This prints a JSON list of installed packages and versions.
+   This prints JSON with installed packages, versions, and metadata.
 
-3. **Look up documentation**:
+3. **Look up documentation** (Jedi-powered):
 
    ```bash
    python scripts/doc_lookup.py pandas.DataFrame.merge
    ```
-   Replace the argument with any fully‑qualified Python object name to
-   see its docstring.
+   Returns structured JSON with signatures, parameters, examples, and
+   related functions — powered by Jedi for accurate type inference.
 
 4. **Analyze existing source**:
 
    ```bash
    python scripts/code_analyzer.py path/to/your_module.py
    ```
-   This prints the abstract syntax tree of the given file, which can
-   help when refactoring or generating compatible code.
+   Returns structured analysis of functions, classes, imports, and
+   dependencies.
 
-5. **Run the tests**:
+5. **Analyze an entire project**:
+
+   ```bash
+   python scripts/project_analyzer.py /path/to/project
+   ```
+   Builds import graphs, detects circular dependencies, classifies
+   third-party vs stdlib dependencies, and generates project summaries.
+
+6. **Code intelligence** (Jedi engine):
+
+   ```bash
+   # Semantic search across a project
+   python scripts/jedi_engine.py search --query "DataFrame" --project /path
+
+   # Find all references
+   python scripts/jedi_engine.py references --file path.py --line 10 --col 5
+
+   # Rename a symbol safely
+   python scripts/jedi_engine.py rename --file path.py --line 10 --col 5 --new-name "better_name"
+
+   # Get diagnostics
+   python scripts/jedi_engine.py diagnostics --file path.py
+   ```
+
+7. **Run diagnostics**:
+
+   ```bash
+   python scripts/diagnostics.py path/to/file.py
+   python scripts/diagnostics.py path/to/file.py --type-check  # include mypy/pyright
+   python scripts/diagnostics.py path/to/project/ --summary     # project-wide
+   ```
+
+8. **Run the tests**:
 
    ```bash
    pytest -q
    ```
-   A comprehensive test suite with 48 tests validates all scripts and
-   caching functionality.
 
-6. **Run a health check**:
+9. **Run a health check**:
 
    ```bash
    python scripts/health_check.py
    ```
-   This verifies that all scripts are working correctly and the skill
-   is healthy.
+   Verifies that all scripts are working correctly.
 
-7. **Debug usage** (optional):
+10. **Debug usage** (optional):
 
-   ```bash
-   python scripts/debug_wrapper.py doc_lookup json.dumps
-   python scripts/debug_wrapper.py inspect_env --find-import PIL
-   python scripts/debug_wrapper.py code_analyzer path/to/file.py
-   ```
-   The debug wrapper logs all skill invocations to
-   `references/skill_usage.log` for troubleshooting.
+    ```bash
+    python scripts/debug_wrapper.py doc_lookup json.dumps
+    python scripts/debug_wrapper.py jedi_engine --search DataFrame .
+    python scripts/debug_wrapper.py project_analyzer /path/to/project
+    python scripts/debug_wrapper.py diagnostics path/to/file.py
+    ```
+    Logs all skill invocations to `references/skill_usage.log`.
 
 ## Continuous Integration
 
 The repository includes a GitHub Actions workflow (`.github/workflows/ci.yml`)
-that runs on every push and pull request.  It sets up Python, installs
-dependencies from `requirements.txt` and runs the test suite via
-`pytest`.  You can customise this workflow to add linting, type
-checking or additional test commands as your project evolves.
+that runs on every push and pull request.  It sets up Python 3.9–3.13,
+installs dependencies, runs linting with ruff, formatting checks, the
+test suite, and verifies all scripts work correctly.
 
 ## Versioning
 
