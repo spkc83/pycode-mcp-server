@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
+        python-version: ['3.10', '3.11', '3.12', '3.13']
       fail-fast: false
     
     steps:
@@ -22,6 +22,56 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+
+      - name: Validate CI Python matrix against pyproject
+        run: |
+          python - <<'PY'
+          import re
+          import sys
+          import tomllib
+          from pathlib import Path
+
+          pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+          requires_python = pyproject["project"]["requires-python"].strip()
+          min_match = re.fullmatch(r">=\s*(\d+)\.(\d+)", requires_python)
+          if not min_match:
+              print(f"Unsupported requires-python format: {requires_python}", file=sys.stderr)
+              sys.exit(1)
+
+          min_version = (int(min_match.group(1)), int(min_match.group(2)))
+          workflow_text = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
+          matrix_match = re.search(r"python-version:\s*\[([^\]]+)\]", workflow_text)
+          if not matrix_match:
+              print("Could not find python-version matrix in .github/workflows/ci.yml", file=sys.stderr)
+              sys.exit(1)
+
+          version_strings = re.findall(r"\d+\.\d+", matrix_match.group(1))
+          if not version_strings:
+              print("No Python versions found in workflow matrix", file=sys.stderr)
+              sys.exit(1)
+
+          bad_versions = []
+          for version in version_strings:
+              parsed = tuple(int(part) for part in version.split("."))
+              if parsed < min_version:
+                  bad_versions.append(version)
+
+          if bad_versions:
+              print(
+                  "CI matrix contains unsupported Python versions: "
+                  + ", ".join(sorted(set(bad_versions)))
+                  + f" (requires-python is {requires_python})",
+                  file=sys.stderr,
+              )
+              sys.exit(1)
+
+          print(
+              "CI matrix Python versions are compatible with requires-python "
+              + requires_python
+              + ": "
+              + ", ".join(version_strings)
+          )
+          PY
 
       - name: Install dependencies
         run: |
