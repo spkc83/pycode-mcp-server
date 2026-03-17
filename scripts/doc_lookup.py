@@ -629,7 +629,7 @@ def _get_jedi_structured_docs(name: str) -> Optional[Dict[str, Any]]:
         # Class methods (if it's a class)
         if jedi_name.type == "class":
             try:
-                _mod = '.'.join(parts[:-1]) if len(parts) > 1 else parts[0]
+                _mod = ".".join(parts[:-1]) if len(parts) > 1 else parts[0]
                 methods_source = f"from {_mod} import {parts[-1]}\n{parts[-1]}."
                 method_script = jedi.Script(methods_source)
                 completions = method_script.complete(2, len(f"{parts[-1]}."))
