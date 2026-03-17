@@ -85,6 +85,26 @@ Run code quality checks combining Jedi, Pyflakes, and optionally mypy/pyright.
 python scripts/diagnostics.py /path/to/file.py --type-check
 ```
 
+### 7. Budgeted Version-Aware Codegen Context
+Build a single context contract for coding agents that includes local API details,
+compatibility checks, and install guidance.
+
+```bash
+# Via MCP: prepare_codegen_context
+# Args example:
+# {
+#   "object_name": "json.dumps",
+#   "package_name": "json",
+#   "min_python": "3.10",
+#   "package_version_spec": ">=3.0",
+#   "budget": "short"
+# }
+
+# Via CLI fallback
+python scripts/codegen_context.py --object json.dumps --budget short
+python scripts/codegen_context.py --package requests --package-version-spec ">=2.30,<3"
+```
+
 ## Connecting via MCP
 
 If your AI agent supports the Model Context Protocol:
@@ -106,3 +126,4 @@ If your AI agent supports the Model Context Protocol:
 2. **Check the environment first** — use `inspect_environment` to know what packages are available and their versions.
 3. **Use install instructions** — when a package is needed, use `get_install_instructions` to give the user the correct command for their package manager.
 4. **Analyze before modifying** — use `analyze_file` on existing code before suggesting changes to understand its structure.
+5. **Use budgeted context generation** — call `prepare_codegen_context` first for token-efficient, compatibility-aware coding output.
