@@ -10,6 +10,7 @@ Usage:
 
 from __future__ import annotations
 
+import inspect
 import json
 import sys
 from pathlib import Path
@@ -29,13 +30,22 @@ def _create_mcp_server():
         "environment introspection, code analysis, and diagnostics "
         "from the local Python runtime."
     )
+
+    kwargs = {}
     try:
-        return FastMCP("pycode-mcp-server", version="4.0.0", description=description)
+        params = inspect.signature(FastMCP).parameters
+    except (TypeError, ValueError):
+        params = {}
+
+    if "version" in params:
+        kwargs["version"] = "4.0.0"
+    if "description" in params:
+        kwargs["description"] = description
+
+    try:
+        return FastMCP("pycode-mcp-server", **kwargs)
     except TypeError:
-        try:
-            return FastMCP("pycode-mcp-server", description=description)
-        except TypeError:
-            return FastMCP("pycode-mcp-server")
+        return FastMCP("pycode-mcp-server")
 
 
 # Initialize the MCP server
