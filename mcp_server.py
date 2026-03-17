@@ -258,6 +258,31 @@ def get_install_instructions(package_name: str, project_path: Optional[str] = No
     return json.dumps(result, indent=2, default=str)
 
 
+@mcp.tool()
+def prepare_codegen_context(
+    object_name: Optional[str] = None,
+    package_name: Optional[str] = None,
+    import_name: Optional[str] = None,
+    project_path: Optional[str] = None,
+    min_python: Optional[str] = None,
+    package_version_spec: Optional[str] = None,
+    budget: str = "medium",
+) -> str:
+    """Build version-aware local context for agent code generation."""
+    from codegen_context import prepare_codegen_context as _prepare_codegen_context
+
+    result = _prepare_codegen_context(
+        object_name=object_name,
+        package_name=package_name,
+        import_name=import_name,
+        project_path=project_path,
+        min_python=min_python,
+        package_version_spec=package_version_spec,
+        budget=budget,
+    )
+    return json.dumps(result, indent=2, default=str)
+
+
 def _detect_package_manager(project_root: Path) -> str:
     """Detect which package manager a project uses."""
     # Walk up to find project root markers

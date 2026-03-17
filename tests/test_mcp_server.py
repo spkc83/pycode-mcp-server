@@ -159,3 +159,61 @@ class TestGetInstallInstructions:
         result = json.loads(get_install_instructions("requests", project_path=str(tmp_path)))
         assert result["detected_package_manager"] == "poetry"
         assert "poetry add" in result["install_command"]
+
+
+class TestPrepareCodegenContext:
+    def test_includes_docs_and_environment(self):
+        from mcp_server import prepare_codegen_context
+
+        result = json.loads(
+            prepare_codegen_context(
+                object_name="json.dumps",
+                package_name="json",
+                budget="medium",
+            )
+        )
+        assert "environment" in result
+        assert "docs" in result
+        assert result["docs"]["found"] is True
+        assert "signature" in result["docs"]
+
+    def test_short_budget_reduces_payload(self):
+        from mcp_server import prepare_codegen_context
+
+        result = json.loads(
+            prepare_codegen_context(
+                object_name="json.dumps",
+                package_name="json",
+                budget="short",
+            )
+        )
+        docs = result["docs"]
+        assert "full_docstring" not in docs
+        assert "signature" in docs
+        assert result["agent_contract"]["budget_mode"] == "short"
+
+    def test_reports_missing_package_with_install_instruction(self):
+        from mcp_server import prepare_codegen_context
+
+        result = json.loads(
+            prepare_codegen_context(
+                package_name="some_unlikely_package_xyz",
+                budget="medium",
+            )
+        )
+        assert result["install"] is not None
+        assert "install_command" in result["install"]
+        assert result["compatibility"]["is_compatible"] is False
+
+    def test_flags_python_version_incompatibility(self):
+        from mcp_server import prepare_codegen_context
+
+        result = json.loads(
+            prepare_codegen_context(
+                object_name="json.dumps",
+                min_python="99.0",
+                budget="medium",
+            )
+        )
+        assert result["compatibility"]["python"]["checked"] is True
+        assert result["compatibility"]["python"]["compatible"] is False

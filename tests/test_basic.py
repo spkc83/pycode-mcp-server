@@ -626,3 +626,48 @@ class TestExtractRaises:
         docstring = "Just a simple function.\n\nArgs:\n    x: An integer.\n"
         raises = module.extract_raises(docstring)
         assert raises == []
+
+
+class TestCodegenContext:
+    @pytest.fixture
+    def module(self):
+        return load_module_from_path("codegen_context", SCRIPTS_DIR / "codegen_context.py")
+
+    def test_prepare_codegen_context_full(self, module):
+        result = module.prepare_codegen_context(
+            object_name="json.dumps",
+            package_name="json",
+            budget="full",
+        )
+        assert "docs" in result
+        assert result["docs"]["found"] is True
+        assert result["agent_contract"]["budget_mode"] == "full"
+
+    def test_prepare_codegen_context_short(self, module):
+        result = module.prepare_codegen_context(
+            object_name="json.dumps",
+            package_name="json",
+            budget="short",
+        )
+        assert "full_docstring" not in result["docs"]
+        assert "signature" in result["docs"]
+
+    def test_prepare_codegen_context_invalid_budget(self, module):
+        with pytest.raises(ValueError):
+            module.prepare_codegen_context(object_name="json.dumps", budget="tiny")
+
+    def test_prepare_codegen_context_missing_package(self, module):
+        result = module.prepare_codegen_context(
+            package_name="some_unlikely_package_xyz",
+            budget="medium",
+        )
+        assert result["install"] is not None
+        assert result["compatibility"]["is_compatible"] is False
+
+    def test_prepare_codegen_context_version_spec(self, module):
+        result = module.prepare_codegen_context(
+            package_name="pytest",
+            package_version_spec=">=1.0,<999.0",
+            budget="medium",
+        )
+        assert result["compatibility"]["package_version"]["checked"] is True
