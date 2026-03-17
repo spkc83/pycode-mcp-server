@@ -20,18 +20,26 @@ _SCRIPTS_DIR = Path(__file__).resolve().parent / "scripts"
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 
-from mcp.server.fastmcp import FastMCP
 
-# Initialize the MCP server
-mcp = FastMCP(
-    "pycode-mcp-server",
-    version="4.0.0",
-    description=(
+def _create_mcp_server():
+    from mcp.server.fastmcp import FastMCP
+
+    description = (
         "Python code intelligence server providing documentation lookup, "
         "environment introspection, code analysis, and diagnostics "
         "from the local Python runtime."
-    ),
-)
+    )
+    try:
+        return FastMCP("pycode-mcp-server", version="4.0.0", description=description)
+    except TypeError:
+        try:
+            return FastMCP("pycode-mcp-server", description=description)
+        except TypeError:
+            return FastMCP("pycode-mcp-server")
+
+
+# Initialize the MCP server
+mcp = _create_mcp_server()
 
 
 # ---------------------------------------------------------------------------
@@ -108,7 +116,8 @@ def find_package_for_import(import_name: str) -> str:
     Args:
         import_name: The module name used in an import statement, e.g. "cv2", "PIL".
     """
-    from inspect_env import find_package_by_import, get_package_details as _get_details
+    from inspect_env import find_package_by_import
+    from inspect_env import get_package_details as _get_details
 
     pkg_name = find_package_by_import(import_name)
     if pkg_name is None:
@@ -208,7 +217,8 @@ def get_install_instructions(package_name: str, project_path: Optional[str] = No
         package_name: The PyPI package name to install, e.g. "requests".
         project_path: Optional project root to detect package manager. Defaults to cwd.
     """
-    from inspect_env import is_package_installed, get_package_details as _get_details
+    from inspect_env import get_package_details as _get_details
+    from inspect_env import is_package_installed
 
     result: dict = {"package": package_name}
 
