@@ -14,6 +14,7 @@ A **Model Context Protocol (MCP) server** that provides Python code intelligence
 | `analyze_project` | Project-wide analysis with import graphs and circular dependency detection |
 | `get_diagnostics` | Run Jedi, Pyflakes, and optionally mypy/pyright diagnostics on a file |
 | `get_install_instructions` | Detect package manager (pip/poetry/uv) and suggest install commands |
+| `prepare_codegen_context` | Build budgeted, version-aware coding context with compatibility warnings |
 
 ## Quick Start
 
@@ -107,6 +108,40 @@ pytest tests/
 python scripts/benchmark.py
 python scripts/token_estimator.py
 ```
+
+## Version-Aware Codegen Context (New)
+
+Use `prepare_codegen_context` when an agent needs a single payload with local signature/docs,
+environment/package compatibility checks, and install guidance.
+
+### MCP Example
+
+Tool: `prepare_codegen_context`
+
+Args example:
+
+```json
+{
+  "object_name": "pandas.DataFrame.merge",
+  "package_name": "pandas",
+  "package_version_spec": ">=2.0,<3",
+  "min_python": "3.10",
+  "budget": "short"
+}
+```
+
+### Budget Modes
+
+- `short`: minimal high-signal fields for token efficiency
+- `medium`: balanced details for coding workflows (default)
+- `full`: complete payload including expanded docs/metadata
+
+The response includes:
+
+- `docs`: local signatures/parameters/examples from runtime-installed libraries
+- `compatibility`: Python/package constraint checks and warnings
+- `install`: package-manager-aware install command when package is missing
+- `agent_contract`: guardrails for version-compatible code generation
 
 ## License
 
