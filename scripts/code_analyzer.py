@@ -14,80 +14,70 @@ import ast
 import json
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Set, Union
+
+_SCRIPTS_DIR = Path(__file__).resolve().parent
+if str(_SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS_DIR))
 
 
-# Python 3.8 compatibility: ast.unparse was added in Python 3.9
+
+def _get_stdlib_modules() -> Set[str]:
+    """Get a comprehensive set of standard library module names."""
+    if hasattr(sys, 'stdlib_module_names'):
+        return set(sys.stdlib_module_names)
+
+    # Comprehensive fallback for Python 3.9
+    return {
+        '__future__', '_thread', 'abc', 'aifc', 'argparse', 'array', 'ast',
+        'asynchat', 'asyncio', 'asyncore', 'atexit', 'audioop', 'base64',
+        'bdb', 'binascii', 'binhex', 'bisect', 'builtins', 'bz2',
+        'calendar', 'cgi', 'cgitb', 'chunk', 'cmath', 'cmd', 'code',
+        'codecs', 'codeop', 'collections', 'colorsys', 'compileall',
+        'concurrent', 'configparser', 'contextlib', 'contextvars', 'copy',
+        'copyreg', 'cProfile', 'crypt', 'csv', 'ctypes', 'curses',
+        'dataclasses', 'datetime', 'dbm', 'decimal', 'difflib', 'dis',
+        'distutils', 'doctest', 'email', 'encodings', 'enum', 'errno',
+        'faulthandler', 'fcntl', 'filecmp', 'fileinput', 'fnmatch',
+        'fractions', 'ftplib', 'functools', 'gc', 'getopt', 'getpass',
+        'gettext', 'glob', 'graphlib', 'grp', 'gzip', 'hashlib', 'heapq',
+        'hmac', 'html', 'http', 'idlelib', 'imaplib', 'imghdr', 'imp',
+        'importlib', 'inspect', 'io', 'ipaddress', 'itertools', 'json',
+        'keyword', 'lib2to3', 'linecache', 'locale', 'logging', 'lzma',
+        'mailbox', 'mailcap', 'marshal', 'math', 'mimetypes', 'mmap',
+        'modulefinder', 'multiprocessing', 'netrc', 'nis', 'nntplib',
+        'numbers', 'operator', 'optparse', 'os', 'ossaudiodev',
+        'pathlib', 'pdb', 'pickle', 'pickletools', 'pipes', 'pkgutil',
+        'platform', 'plistlib', 'poplib', 'posix', 'posixpath', 'pprint',
+        'profile', 'pstats', 'pty', 'pwd', 'py_compile', 'pyclbr',
+        'pydoc', 'queue', 'quopri', 'random', 're', 'readline', 'reprlib',
+        'resource', 'rlcompleter', 'runpy', 'sched', 'secrets', 'select',
+        'selectors', 'shelve', 'shlex', 'shutil', 'signal', 'site',
+        'smtpd', 'smtplib', 'sndhdr', 'socket', 'socketserver', 'sqlite3',
+        'ssl', 'stat', 'statistics', 'string', 'stringprep', 'struct',
+        'subprocess', 'sunau', 'symtable', 'sys', 'sysconfig', 'syslog',
+        'tabnanny', 'tarfile', 'telnetlib', 'tempfile', 'termios', 'test',
+        'textwrap', 'threading', 'time', 'timeit', 'tkinter', 'token',
+        'tokenize', 'trace', 'traceback', 'tracemalloc', 'tty', 'turtle',
+        'turtledemo', 'types', 'typing', 'unicodedata', 'unittest',
+        'urllib', 'uu', 'uuid', 'venv', 'warnings', 'wave', 'weakref',
+        'webbrowser', 'winreg', 'winsound', 'wsgiref', 'xdrlib', 'xml',
+        'xmlrpc', 'zipapp', 'zipfile', 'zipimport', 'zlib',
+        '_io', '_collections_abc', 'typing_extensions',
+    }
+
+
+STDLIB_MODULES = _get_stdlib_modules()
+
+
 def _ast_unparse(node: ast.AST) -> str:
-    """Convert an AST node back to source code string.
-    
-    Uses ast.unparse on Python 3.9+, falls back to a simple implementation
-    for Python 3.8.
-    """
-    if hasattr(ast, 'unparse'):
-        return ast.unparse(node)
-    
-    # Fallback for Python 3.8
-    if isinstance(node, ast.Name):
-        return node.id
-    elif isinstance(node, ast.Attribute):
-        return f"{_ast_unparse(node.value)}.{node.attr}"
-    elif isinstance(node, ast.Subscript):
-        return f"{_ast_unparse(node.value)}[{_ast_unparse(node.slice)}]"
-    elif isinstance(node, ast.Index):  # Python 3.8 only
-        return _ast_unparse(node.value)  # type: ignore
-    elif isinstance(node, ast.Constant):
-        return repr(node.value)
-    elif isinstance(node, ast.Num):  # Python 3.8 compat
-        return repr(node.n)  # type: ignore
-    elif isinstance(node, ast.Str):  # Python 3.8 compat
-        return repr(node.s)  # type: ignore
-    elif isinstance(node, ast.List):
-        return f"[{', '.join(_ast_unparse(e) for e in node.elts)}]"
-    elif isinstance(node, ast.Tuple):
-        return f"({', '.join(_ast_unparse(e) for e in node.elts)})"
-    elif isinstance(node, ast.Dict):
-        pairs = []
-        for k, v in zip(node.keys, node.values):
-            if k is None:
-                pairs.append(f"**{_ast_unparse(v)}")
-            else:
-                pairs.append(f"{_ast_unparse(k)}: {_ast_unparse(v)}")
-        return "{" + ", ".join(pairs) + "}"
-    elif isinstance(node, ast.Call):
-        args = [_ast_unparse(a) for a in node.args]
-        kwargs = [f"{kw.arg}={_ast_unparse(kw.value)}" for kw in node.keywords]
-        return f"{_ast_unparse(node.func)}({', '.join(args + kwargs)})"
-    elif isinstance(node, ast.BinOp):
-        op_map = {
-            ast.Add: '+', ast.Sub: '-', ast.Mult: '*', ast.Div: '/',
-            ast.Mod: '%', ast.Pow: '**', ast.BitOr: '|', ast.BitAnd: '&',
-        }
-        op = op_map.get(type(node.op), '?')
-        return f"{_ast_unparse(node.left)} {op} {_ast_unparse(node.right)}"
-    elif isinstance(node, ast.UnaryOp):
-        op_map = {ast.Not: 'not ', ast.USub: '-', ast.UAdd: '+'}
-        op = op_map.get(type(node.op), '')
-        return f"{op}{_ast_unparse(node.operand)}"
-    elif isinstance(node, ast.NameConstant):  # Python 3.8 compat
-        return repr(node.value)  # type: ignore
-    elif isinstance(node, ast.Ellipsis):
-        return "..."
-    else:
-        # Fallback: return the class name
-        return f"<{type(node).__name__}>"
+    """Convert an AST node back to source code string."""
+    return ast.unparse(node)
 
 
 def _ast_dump(node: ast.AST, indent: int = 2) -> str:
-    """Dump an AST node with optional indentation.
-    
-    Uses ast.dump with indent on Python 3.9+, falls back to no indent
-    for Python 3.8.
-    """
-    if sys.version_info >= (3, 9):
-        return ast.dump(node, indent=indent)
-    else:
-        return ast.dump(node)
+    """Dump an AST node with indentation."""
+    return ast.dump(node, indent=indent)
 
 
 class CodeVisitor(ast.NodeVisitor):
@@ -179,7 +169,7 @@ class CodeVisitor(ast.NodeVisitor):
         
         return params
     
-    def _extract_docstring(self, node: ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef | ast.Module) -> Optional[str]:
+    def _extract_docstring(self, node: Union[ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Module]) -> Optional[str]:
         return ast.get_docstring(node)
     
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
@@ -190,7 +180,7 @@ class CodeVisitor(ast.NodeVisitor):
         self._process_function(node, is_async=True)
         self.generic_visit(node)
     
-    def _process_function(self, node: ast.FunctionDef | ast.AsyncFunctionDef, is_async: bool) -> None:
+    def _process_function(self, node: Union[ast.FunctionDef, ast.AsyncFunctionDef], is_async: bool) -> None:
         if self._current_class:
             return
         
@@ -349,17 +339,7 @@ def analyze_source(source: str) -> Dict[str, Any]:
         if imp["module"]:
             all_deps.add(imp["module"].split('.')[0])
     
-    stdlib_modules = {
-        'os', 'sys', 'json', 're', 'typing', 'pathlib', 'collections', 'functools',
-        'itertools', 'datetime', 'time', 'math', 'random', 'hashlib', 'base64',
-        'urllib', 'http', 'email', 'html', 'xml', 'logging', 'unittest', 'ast',
-        'inspect', 'importlib', 'contextlib', 'dataclasses', 'enum', 'abc',
-        'copy', 'pickle', 'io', 'tempfile', 'shutil', 'glob', 'fnmatch',
-        'argparse', 'configparser', 'csv', 'sqlite3', 'threading', 'multiprocessing',
-        'subprocess', 'socket', 'ssl', 'asyncio', 'concurrent', 'queue',
-    }
-    
-    third_party = sorted([d for d in all_deps if d not in stdlib_modules and d])
+    third_party = sorted([d for d in all_deps if d not in STDLIB_MODULES and d])
     if third_party:
         result["third_party_dependencies"] = third_party
     
@@ -390,7 +370,7 @@ def analyze_source_raw(source: str) -> str:
     return _ast_dump(tree, indent=2)
 
 
-def analyze_file(path: str, raw: bool = False) -> Dict[str, Any] | str:
+def analyze_file(path: str, raw: bool = False) -> Union[Dict[str, Any], str]:
     """Analyze a Python file."""
     file_path = Path(path)
     

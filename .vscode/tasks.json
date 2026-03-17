@@ -23,6 +23,34 @@
       "presentation": { "reveal": "always" }
     },
     {
+      "label": "Analyze Project",
+      "type": "shell",
+      "command": "python scripts/project_analyzer.py ${workspaceFolder}",
+      "group": "none",
+      "presentation": { "reveal": "always" }
+    },
+    {
+      "label": "Jedi Search",
+      "type": "shell",
+      "command": "python scripts/jedi_engine.py search --query ${input:searchQuery} --project ${workspaceFolder}",
+      "group": "none",
+      "presentation": { "reveal": "always" }
+    },
+    {
+      "label": "Run Diagnostics on File",
+      "type": "shell",
+      "command": "python scripts/diagnostics.py ${file}",
+      "group": "none",
+      "presentation": { "reveal": "always" }
+    },
+    {
+      "label": "Run Health Check",
+      "type": "shell",
+      "command": "python scripts/health_check.py",
+      "group": "none",
+      "presentation": { "reveal": "always" }
+    },
+    {
       "label": "Run Pytest",
       "type": "shell",
       "command": "pytest --maxfail=1 --disable-warnings",
@@ -35,6 +63,11 @@
       "id": "objectName",
       "type": "promptString",
       "description": "Enter Python object (e.g., pandas.DataFrame.merge)"
+    },
+    {
+      "id": "searchQuery",
+      "type": "promptString",
+      "description": "Enter search query (e.g., DataFrame, class Foo)"
     }
   ]
 }

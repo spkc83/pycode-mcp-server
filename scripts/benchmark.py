@@ -1,8 +1,8 @@
-"""Performance benchmark runner for the Python Code Assistant skill.
+"""Performance benchmark runner for the PyCode MCP Server.
 
-Measures execution time, memory usage, and throughput across all skill
-scripts with comparisons between approaches (Jedi vs fallback, cached
-vs uncached, structured vs raw).
+Measures execution time, memory usage, and throughput across all MCP tool
+backend modules with comparisons between approaches (Jedi vs fallback,
+cached vs uncached, structured vs raw).
 
 Usage:
     python benchmark.py                          # Run all suites

@@ -1,8 +1,8 @@
-"""Agent evaluation harness for benchmarking coding agents with/without skill.
+"""Agent evaluation harness for benchmarking coding agents with/without MCP tools.
 
 Parses conversation logs from Claude Code, Antigravity, and OpenCode to
 extract metrics (tokens, tool calls, turns), then compares performance
-on standardized tasks with and without the skill installed.
+on standardized tasks with and without the MCP server tools available.
 
 Usage:
     python agent_eval.py list-tasks

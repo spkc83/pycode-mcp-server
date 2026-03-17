@@ -1,7 +1,7 @@
-"""Token cost estimator for comparing skill output vs naive approaches.
+"""Token cost estimator for comparing MCP tool output vs naive approaches.
 
 Estimates LLM token counts for different output formats and computes
-cost savings from using structured skill output vs raw pydoc/help/source.
+cost savings from using structured MCP tool output vs raw pydoc/help/source.
 
 Usage:
     python token_estimator.py                      # Run all comparisons

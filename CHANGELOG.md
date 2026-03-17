@@ -7,15 +7,184 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.0.0] - 2026-03-16
+
+### Changed
+
+* **Architecture: Agent Skill → MCP Server** — The application is now a Model Context Protocol (MCP) server using the FastMCP framework. AI agents with MCP support (Claude Code, Cursor, etc.) can discover and use tools natively without shell execution.
+* **Repository renamed** from `python-code-assistant-skill` to `pycode-mcp-server`.
+* **`pyproject.toml`** — Renamed package, added `mcp[cli]` dependency, added `pycode-mcp-server` console entry point, bumped minimum Python to 3.10.
+* **`SKILL.md`** — Rewritten as a general-purpose skill definition for non-coding AI agents, with both MCP and CLI fallback instructions.
+* **`README.md`** — Completely rewritten for MCP server installation, agent configuration, and tool reference.
+
 ### Added
 
-* New `scripts/health_check.py` script for quick verification of skill functionality.
-  Checks all core scripts (`doc_lookup.py`, `inspect_env.py`, `code_analyzer.py`,
-  `cache.py`) and reports their status.
-* New `scripts/debug_wrapper.py` for logging skill invocations. Writes usage logs
-  to `references/skill_usage.log` for troubleshooting and debugging.
-* Updated documentation in README.md and SKILL.md to reflect new scripts and
-  accurate project structure.
+* **`mcp_server.py`** — FastMCP server entrypoint exposing 8 tools:
+  - `get_local_docs` — Documentation lookup (signatures, params, examples)
+  - `inspect_environment` — Python runtime & package listing
+  - `get_package_details` — Detailed package info
+  - `find_package_for_import` — Reverse import-to-package lookup
+  - `analyze_file` — Single-file code structure analysis
+  - `analyze_project` — Project-wide analysis with import graphs
+  - `get_diagnostics` — Jedi/Pyflakes/mypy diagnostics
+  - `get_install_instructions` — Package manager detection & install commands
+* **`scripts/__init__.py`** — Proper package init replacing `sys.path` hacks.
+* **`tests/test_mcp_server.py`** — Integration tests for all 8 MCP tools.
+
+### Removed
+
+* **`scripts/debug_wrapper.py`** — Replaced by MCP tool dispatch.
+* **`scripts/health_check.py`** — Replaced by MCP server startup and `inspect_environment` tool.
+* **`references/local_docs_index.json`** — Stale snapshot; MCP queries live data.
+* **`TestHealthCheck` and `TestDebugWrapper`** test classes removed from `test_basic.py`.
+
+
+## [3.1.0] - 2026-03-14
+
+### Added
+
+* **New `scripts/benchmark.py`** — Performance benchmark runner:
+  - 5 benchmark suites: doc lookup, code analysis, project analysis,
+    environment inspection, diagnostics
+  - Measures execution time (via `timeit`), memory usage (via `tracemalloc`),
+    and cache speedup ratios
+  - CLI with `--suite`, `--iterations`, `--format` (markdown/json/table),
+    and `--output` options
+
+* **New `scripts/token_estimator.py`** — Token cost comparison tool:
+  - Estimates LLM tokens for structured skill output vs raw approaches
+    (pydoc, help(), ast.dump, pip list)
+  - 5 comparison scenarios: doc lookup, class lookup, code analysis,
+    project analysis, environment inspection
+  - Configurable model pricing (GPT-4o, Claude 3.5, Gemini, etc.)
+  - Optional `tiktoken` support for exact token counts
+  - CLI with `--compare`, `--estimate`, `--model`, `--format` options
+
+* **New `scripts/agent_eval.py`** — Agent evaluation harness:
+  - Benchmarks coding agents (Claude Code, Antigravity, OpenCode) on
+    standardized tasks with and without the skill installed
+  - Parses Claude Code JSONL session logs for token/tool/turn counts
+  - Parses Antigravity brain logs for conversation metrics
+  - Comparison engine with per-task and aggregate reporting
+  - CLI subcommands: `list-tasks`, `record`, `parse-logs`, `compare`, `report`
+
+* **New `tests/eval_tasks/`** — 10 standardized evaluation tasks:
+  - Tasks 01–03: Documentation lookup (Easy–Medium)
+  - Tasks 04–05: Codebase understanding (Easy–Hard)
+  - Tasks 06–08: Code generation (Easy–Hard)
+  - Tasks 09–10: Cross-module integration (Medium–Hard)
+  - Each task has exact prompts and automated pytest verification tests
+  - Step-by-step evaluation guide in `README.md`
+
+* **New `tests/test_benchmarks.py`** — 25+ benchmark assertions:
+  - Performance guard rails with CI thresholds
+  - Token savings verification (>30% doc lookup, >50% project analysis)
+  - Information density comparison tests
+  - Unit tests for benchmark and token_estimator modules
+
+* Added `tiktoken` to `[project.optional-dependencies.benchmark]`
+* Added benchmark and eval output paths to `.gitignore`
+* Added non-blocking benchmark smoke tests to CI pipeline
+
+## [3.0.0] - 2026-03-14
+
+### ⚠️ Breaking Changes
+
+* **Minimum Python version bumped from 3.8 to 3.9.** Removed all Python 3.8
+  compatibility workarounds (`ast.unparse` fallback, `ast.Num`/`ast.Str`/
+  `ast.NameConstant`/`ast.Index` handling).
+* `jedi>=0.19.0` is now a **required dependency** (was not previously used).
+  Jedi is the primary engine for documentation lookup, replacing the simpler
+  `inspect`/`pydoc` approach which is now a fallback.
+* Cache version bumped from `2` to `3`. Existing cache files will be migrated
+  automatically.
+* Removed `_evict_lru()` alias from `cache.py` (the actual algorithm was always
+  LFU, the alias name was misleading).
+
+### Added
+
+* **New `scripts/jedi_engine.py`** — Jedi-powered code intelligence engine:
+  - Autocompletions (`completions`)
+  - Go-to-definition and type inference (`definitions`, `infer`)
+  - Find all references (`references`)
+  - Go-to without following imports (`goto`)
+  - Hover information (`hover`)
+  - Function signature help (`signatures`)
+  - Semantic search across projects (`search`)
+  - Safe symbol renaming (`rename`)
+  - Variable extraction (`extract_variable`)
+  - Function extraction (`extract_function`)
+  - Variable inlining (`inline`)
+  - Syntax error diagnostics (`diagnostics`)
+  - Status check (`status`)
+
+* **New `scripts/project_analyzer.py`** — Project-level analysis:
+  - Recursive Python file discovery with exclusion patterns
+  - Import dependency graph construction
+  - Circular dependency detection
+  - Dependency classification (stdlib vs third-party)
+  - Cross-reference index (via Jedi, optional)
+  - Project summary statistics
+
+* **New `scripts/diagnostics.py`** — Unified diagnostics engine:
+  - Jedi syntax error detection
+  - Pyflakes integration (undefined names, unused imports)
+  - mypy/pyright subprocess integration (optional type checking)
+  - Project-wide diagnostic summaries
+
+* **Dynamic stdlib detection** in `code_analyzer.py`: now uses
+  `sys.stdlib_module_names` (Python 3.10+) with a comprehensive ~200-module
+  fallback for Python 3.9. Previous version had only ~38 hardcoded modules,
+  causing many stdlib modules (e.g., `textwrap`, `struct`, `decimal`,
+  `traceback`, `warnings`, `signal`) to be falsely reported as third-party.
+
+* **Cache TTL**: Documentation cache entries now expire after 7 days
+  (configurable via `DEFAULT_TTL_HOURS`).
+
+* `health_check.py` expanded to verify all new scripts (Jedi engine,
+  project analyzer, diagnostics).
+
+* `debug_wrapper.py` updated to support all new scripts.
+
+* Added `ruff` for linting and formatting in CI.
+
+* Added tests: `test_jedi_engine.py`, `test_project_analyzer.py`,
+  `test_diagnostics.py`, plus new test classes in `test_basic.py`
+  (`TestHealthCheck`, `TestDebugWrapper`, `TestStdlibDetection`,
+  `TestExtractRaises`).
+
+### Fixed
+
+* **CRITICAL**: Fixed `code_analyzer.py` using `X | Y` type union syntax
+  (`ast.FunctionDef | ast.AsyncFunctionDef`) which causes `SyntaxError`
+  on Python 3.8 and 3.9 despite claiming 3.8+ support. Now uses `Union[]`.
+
+* **CRITICAL**: Fixed fragile `from cache import CacheManager` imports in
+  `doc_lookup.py` and `inspect_env.py` that only worked when CWD was
+  `scripts/`. All scripts now add their directory to `sys.path` automatically.
+
+* Fixed `inspect_env.py` calling `distributions()` up to 6 times per
+  invocation. Results are now cached in a module-level variable.
+
+* Fixed `get_import_names()` in `inspect_env.py` only catching
+  `FileNotFoundError` when `dist.read_text()` can also raise `TypeError`
+  or `KeyError` depending on Python version.
+
+* Fixed `extract_raises()` in `doc_lookup.py` — now correctly parses
+  Google-style, NumPy-style, and Sphinx-style docstrings using regex.
+
+* Removed duplicated directory tree in `README.md`.
+
+* Fixed CHANGELOG v1.1.0 referring to "LRU eviction" when the actual
+  algorithm is LFU (Least Frequently Used).
+
+### Changed
+
+* `doc_lookup.py` restructured to use Jedi as primary engine with
+  `inspect`/`pydoc` as fallback.
+* CI matrix updated: removed Python 3.8, added Python 3.13, added ruff
+  lint/format checks and health check step.
+* Comprehensive documentation rewrite: README.md, SKILL.md, CHANGELOG.md.
 
 ## [2.0.0] - 2025-02-01
 
@@ -99,7 +268,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * New `scripts/cache.py` module providing JSON-based caching for docstring
   lookups and package tracking. Features include:
   - Automatic cache invalidation when packages are updated
-  - LRU eviction when cache reaches maximum size (500 entries)
+  - LFU eviction when cache reaches maximum size (500 entries)
   - CLI interface with `--stats` and `--clear` options
   - Hit/miss statistics tracking
 * `pyproject.toml` for modern Python packaging (PEP 517/518 compliant).

@@ -1,8 +1,8 @@
 """Lookup local documentation for Python objects with structured output.
 
 This script provides comprehensive documentation lookup for Python objects
-using only local sources (installed packages, no web searches). It returns
-structured JSON with signatures, type hints, examples, and related functions.
+using Jedi as the primary engine for accurate type inference and signatures,
+with fallback to local inspect/pydoc sources when Jedi is unavailable.
 
 Usage:
     python doc_lookup.py <object_name> [--no-cache] [--raw]
@@ -20,8 +20,14 @@ import doctest
 import importlib
 import inspect
 import json
+import re
 import sys
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
+
+_SCRIPTS_DIR = Path(__file__).resolve().parent
+if str(_SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS_DIR))
 
 try:
     from typing import get_type_hints
@@ -31,6 +37,13 @@ except ImportError:
 import pydoc
 
 from cache import CacheManager
+
+# Try to import Jedi
+try:
+    import jedi
+    JEDI_AVAILABLE = True
+except ImportError:
+    JEDI_AVAILABLE = False
 
 
 def resolve_object(name: str) -> Tuple[Optional[Any], Optional[str]]:
@@ -205,45 +218,73 @@ def extract_examples(docstring: Optional[str]) -> List[Dict[str, str]]:
 
 
 def extract_raises(docstring: Optional[str]) -> List[Dict[str, str]]:
-    """Extract exception information from docstring."""
+    """Extract exception information from docstring.
+    
+    Supports Google, NumPy, Sphinx, and plain docstring styles.
+    """
     if not docstring:
         return []
-    
-    raises = []
-    in_raises_section = False
-    current_exception = None
-    
-    for line in docstring.split('\n'):
-        line_stripped = line.strip()
-        line_lower = line_stripped.lower()
         
-        if line_lower in ('raises', 'raises:', 'exceptions', 'exceptions:'):
-            in_raises_section = True
-            continue
-        elif line_lower.startswith(('raises', 'raise ')) and ':' in line_stripped:
-            match = line_stripped.split(':', 1)
-            if len(match) == 2:
-                exc_part = match[0].replace('Raises', '').replace('Raise', '').strip()
-                raises.append({
-                    "exception": exc_part,
-                    "description": match[1].strip()
-                })
-        elif in_raises_section:
-            if line_stripped and not line.startswith(' ') and line.startswith(line_stripped):
-                if ':' not in line_stripped:
-                    in_raises_section = False
-                    continue
+    docstring = inspect.cleandoc(docstring)
+    
+    raises: List[Dict[str, str]] = []
+    
+    # Pattern 1: Sphinx-style ":raises ExcType: description"
+    sphinx_pattern = re.compile(
+        r':raises?\s+(\w+(?:\.\w+)*)\s*:\s*(.+)', re.MULTILINE
+    )
+    for match in sphinx_pattern.finditer(docstring):
+        raises.append({
+            "exception": match.group(1),
+            "description": match.group(2).strip(),
+        })
+    
+    if raises:
+        return raises
+    
+    # Pattern 2: Section-based (Google/NumPy style)
+    # Look for "Raises:", "Raises", "Exceptions:" section headers
+    section_pattern = re.compile(
+        r'^\s*(?:Raises|Exceptions)\s*:?\s*$', re.MULTILINE
+    )
+    
+    match = section_pattern.search(docstring)
+    if match:
+        section_start = match.end()
+        # Find the end of the section (next section header or end of docstring)
+        next_section = re.search(
+            r'^\s*(?:Returns|Args|Parameters|Notes|Examples|See Also|References|Attributes|Methods|Yields|Warnings)\s*:?\s*$',
+            docstring[section_start:], re.MULTILINE
+        )
+        section_end = section_start + next_section.start() if next_section else len(docstring)
+        section_text = docstring[section_start:section_end]
+        
+        # Parse entries: "ExcType : description" or "ExcType\n    description"
+        entry_pattern = re.compile(
+            r'^\s{4}(\w+(?:\.\w+)*)(?:\s*:\s*(.+?))?$', re.MULTILINE
+        )
+        for entry_match in entry_pattern.finditer(section_text):
+            exc_name = entry_match.group(1)
+            desc = entry_match.group(2) or ""
+            if not desc:
+                # Look for indented description on next lines
+                end_pos = entry_match.end()
+                remaining = section_text[end_pos:]
+                desc_lines = []
+                for line in remaining.split('\n'):
+                    stripped = line.strip()
+                    if stripped and line.startswith('        '):
+                        desc_lines.append(stripped)
+                    elif stripped and not line.startswith('    '):
+                        break
+                    elif not stripped:
+                        break
+                desc = ' '.join(desc_lines)
             
-            if line_stripped.startswith('-'):
-                continue
-            
-            if ':' in line_stripped and not line_stripped.startswith(' '):
-                parts = line_stripped.split(':', 1)
-                if len(parts) == 2:
-                    raises.append({
-                        "exception": parts[0].strip(),
-                        "description": parts[1].strip()
-                    })
+            raises.append({
+                "exception": exc_name,
+                "description": desc.strip(),
+            })
     
     return raises
 
@@ -458,6 +499,169 @@ def get_structured_docs(name: str) -> Dict[str, Any]:
     return result
 
 
+def _get_jedi_structured_docs(name: str) -> Optional[Dict[str, Any]]:
+    """Get structured documentation using Jedi (primary engine).
+    
+    Returns None if Jedi is unavailable or cannot resolve the name.
+    """
+    if not JEDI_AVAILABLE:
+        return None
+    
+    try:
+        # Create a script that imports/references the object
+        parts = name.split('.')
+        if len(parts) == 1:
+            script_source = f"import {name}\n{name}"
+            line, col = 2, 0
+        else:
+            module = '.'.join(parts[:-1])
+            attr = parts[-1]
+            script_source = f"from {module} import {attr}\n{attr}"
+            line, col = 2, 0
+        
+        script = jedi.Script(script_source)
+        names = script.infer(line, col)
+        
+        if not names:
+            return None
+        
+        jedi_name = names[0]
+        
+        result: Dict[str, Any] = {
+            "name": name,
+            "found": True,
+            "error": None,
+            "type": jedi_name.type,
+            "object_type": jedi_name.type,
+            "full_name": jedi_name.full_name,
+        }
+        
+        # Import statement
+        result["import_statement"] = get_import_statement(name, None)
+        
+        # Signature via Jedi completions
+        try:
+            if len(parts) >= 2:
+                sig_source = f"from {'.'.join(parts[:-1])} import {parts[-1]}\n{parts[-1]}("
+            else:
+                sig_source = f"{name}("
+            sig_script = jedi.Script(sig_source)
+            sigs = sig_script.get_signatures(len(sig_source.split('\n')), len(sig_source.split('\n')[-1]))
+            if sigs:
+                sig = sigs[0]
+                params_str = ', '.join(p.description for p in sig.params)
+                result["signature"] = f"{parts[-1]}({params_str})"
+                
+                # Parameters
+                param_list = []
+                for p in sig.params:
+                    param_info: Dict[str, Any] = {"name": p.name}
+                    desc = p.description
+                    if desc and '=' in desc:
+                        param_info["default"] = desc.split('=', 1)[1].strip()
+                        param_info["required"] = False
+                    elif desc and ':' in desc:
+                        param_info["type"] = desc.split(':', 1)[1].strip()
+                        param_info["required"] = True
+                    else:
+                        param_info["required"] = not p.name.startswith('*')
+                    param_info["kind"] = "keyword_only" if desc and 'keyword' in desc else "positional_or_keyword"
+                    param_list.append(param_info)
+                if param_list:
+                    result["parameters"] = param_list
+        except Exception:
+            pass
+        
+        # Docstring
+        try:
+            docstring = jedi_name.docstring(raw=False)
+            if docstring:
+                lines = docstring.split('\n')
+                result["short_description"] = lines[0].strip() if lines else None
+                result["full_docstring"] = docstring
+                
+                # Examples from docstring
+                examples = extract_examples(docstring)
+                if examples:
+                    result["examples"] = examples
+                
+                # Raises from docstring
+                raises = extract_raises(docstring)
+                if raises:
+                    result["raises"] = raises
+        except Exception:
+            pass
+        
+        # Source file
+        if jedi_name.module_path:
+            result["source_file"] = str(jedi_name.module_path)
+        
+        # Related functions via Jedi search
+        try:
+            if jedi_name.module_name:
+                search_results = jedi.Script(f"import {jedi_name.module_name}").complete(1, len(f"import {jedi_name.module_name}") + 1)
+                obj_name = parts[-1]
+                related = [
+                    r.name for r in search_results[:20]
+                    if r.name != obj_name and not r.name.startswith('_')
+                    and (obj_name.lower() in r.name.lower() or r.name.lower() in obj_name.lower())
+                ][:5]
+                if related:
+                    result["related"] = related
+        except Exception:
+            pass
+        
+        # Class methods (if it's a class)
+        if jedi_name.type == "class":
+            try:
+                methods_source = f"from {'.'.join(parts[:-1]) if len(parts) > 1 else parts[0]} import {parts[-1]}\n{parts[-1]}."
+                method_script = jedi.Script(methods_source)
+                completions = method_script.complete(2, len(f"{parts[-1]}."))
+                
+                methods = []
+                attributes = []
+                for c in completions:
+                    if c.type in ('function', 'method'):
+                        if c.name.startswith('__') and c.name not in ('__init__', '__call__', '__enter__', '__exit__'):
+                            continue
+                        if c.name.startswith('_') and not c.name.startswith('__'):
+                            continue
+                        method_info: Dict[str, Any] = {"name": c.name}
+                        try:
+                            desc = c.description
+                            if desc:
+                                method_info["description"] = desc
+                        except Exception:
+                            pass
+                        methods.append(method_info)
+                    elif c.type in ('instance', 'statement') and not c.name.startswith('_'):
+                        attributes.append({"name": c.name, "type": c.type})
+                
+                if methods:
+                    result["methods"] = methods
+                if attributes:
+                    result["attributes"] = attributes
+            except Exception:
+                pass
+        
+        # Module exports (if it's a module)
+        if jedi_name.type == "module":
+            try:
+                mod_source = f"import {name}\n{name}."
+                mod_script = jedi.Script(mod_source)
+                completions = mod_script.complete(2, len(f"{name}."))
+                result["exports"] = [
+                    c.name for c in completions[:20]
+                    if not c.name.startswith('_')
+                ]
+            except Exception:
+                pass
+        
+        return result
+    except Exception:
+        return None
+
+
 def get_local_docs(name: str, use_cache: bool = True, structured: bool = True) -> Union[str, Dict[str, Any]]:
     """Return documentation for a given object name.
 
@@ -488,7 +692,13 @@ def get_local_docs(name: str, use_cache: bool = True, structured: bool = True) -
         pass
     
     if structured:
-        result = get_structured_docs(name)
+        # Try Jedi first (primary engine)
+        result = _get_jedi_structured_docs(name)
+        
+        # Fall back to inspect/pydoc if Jedi failed
+        if result is None or not result.get("found", False):
+            result = get_structured_docs(name)
+        
         if cache and result.get("found", False):
             cache.set_doc(name, result, pkg_name, pkg_version)
             cache.save()
