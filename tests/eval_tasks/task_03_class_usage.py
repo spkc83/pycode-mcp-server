@@ -14,7 +14,6 @@ Difficulty: Medium
 """
 
 import sys
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -41,38 +40,44 @@ def sample_dir(tmp_path):
 
 
 class TestTask03ClassUsage:
-
     def test_function_exists(self):
         from task_03_output import find_python_files
+
         assert callable(find_python_files)
 
     def test_finds_all_py_files(self, sample_dir):
         from task_03_output import find_python_files
+
         result = find_python_files(sample_dir)
         assert len(result) == 3
 
     def test_excludes_non_py(self, sample_dir):
         from task_03_output import find_python_files
+
         result = find_python_files(sample_dir)
         assert all(k.endswith(".py") for k in result)
 
     def test_values_are_ints(self, sample_dir):
         from task_03_output import find_python_files
+
         result = find_python_files(sample_dir)
         assert all(isinstance(v, int) for v in result.values())
 
     def test_sorted_largest_first(self, sample_dir):
         from task_03_output import find_python_files
+
         result = find_python_files(sample_dir)
         sizes = list(result.values())
         assert sizes == sorted(sizes, reverse=True)
 
     def test_returns_dict(self, sample_dir):
         from task_03_output import find_python_files
+
         result = find_python_files(sample_dir)
         assert isinstance(result, dict)
 
     def test_empty_dir(self, tmp_path):
         from task_03_output import find_python_files
+
         result = find_python_files(tmp_path)
         assert result == {} or len(result) == 0

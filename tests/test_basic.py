@@ -127,14 +127,14 @@ class TestCodeAnalyzer:
         assert len(func["parameters"]) == 2
 
     def test_extracts_class_methods(self, module):
-        source = '''
+        source = """
 class Calculator:
     def add(self, a: int, b: int) -> int:
         return a + b
     
     def subtract(self, a: int, b: int) -> int:
         return a - b
-'''
+"""
         result = module.analyze_source(source)
         assert "classes" in result
         cls = result["classes"][0]
@@ -145,7 +145,7 @@ class Calculator:
         assert "subtract" in method_names
 
     def test_extracts_decorators(self, module):
-        source = '''
+        source = """
 @dataclass
 class Point:
     x: int
@@ -154,7 +154,7 @@ class Point:
 @staticmethod
 def helper():
     pass
-'''
+"""
         result = module.analyze_source(source)
         assert "decorators_used" in result
         assert "dataclass" in result["decorators_used"]
@@ -188,12 +188,14 @@ class TestDocLookup:
     def test_resolve_object_stdlib(self, module):
         obj, err = module.resolve_object("json.dumps")
         import json as json_mod
+
         assert obj is json_mod.dumps
         assert err is None
 
     def test_resolve_object_nested(self, module):
         obj, err = module.resolve_object("os.path.join")
         import os.path
+
         assert obj is os.path.join
         assert err is None
 
@@ -228,7 +230,9 @@ class TestDocLookup:
         assert len(result) > 0
 
     def test_handles_nonexistent_name(self, module):
-        result = module.get_local_docs("this_does_not_exist_xyz123", use_cache=False, structured=True)
+        result = module.get_local_docs(
+            "this_does_not_exist_xyz123", use_cache=False, structured=True
+        )
         assert isinstance(result, dict)
         assert result["found"] is False
         assert "error" in result
@@ -271,7 +275,7 @@ class TestCache:
     def test_set_and_get_docstring(self, cache_manager):
         cache_manager.set_docstring("test.func", "Test documentation")
         cache_manager.save()
-        
+
         result = cache_manager.get_docstring("test.func")
         assert result == "Test documentation"
 
@@ -279,7 +283,7 @@ class TestCache:
         cache_manager.update_packages([("test", "1.0.0")])
         cache_manager.set_docstring("test.func", "Test documentation", "test", "1.0.0")
         cache_manager.save()
-        
+
         result = cache_manager.get_docstring("test.func")
         assert result == "Test documentation"
 
@@ -291,47 +295,47 @@ class TestCache:
         packages = [("pytest", "7.0.0"), ("numpy", "1.24.0")]
         hash_val = cache_manager.update_packages(packages)
         cache_manager.save()
-        
+
         assert hash_val is not None
         assert len(hash_val) == 16
 
     def test_packages_stale_detection(self, cache_manager):
         packages_v1 = [("pytest", "7.0.0")]
         packages_v2 = [("pytest", "8.0.0")]
-        
+
         cache_manager.update_packages(packages_v1)
         cache_manager.save()
-        
+
         assert not cache_manager.is_packages_stale(packages_v1)
         assert cache_manager.is_packages_stale(packages_v2)
 
     def test_clear_cache(self, cache_manager):
         cache_manager.set_docstring("test", "data")
         cache_manager.save()
-        
+
         cache_manager.clear()
-        
+
         assert cache_manager.get_docstring("test") is None
 
     def test_stats_tracking(self, cache_manager):
         cache_manager.get_docstring("miss1")
         cache_manager.get_docstring("miss2")
-        
+
         cache_manager.set_docstring("hit", "data")
         cache_manager.get_docstring("hit")
         cache_manager.save()
-        
+
         stats = cache_manager.get_stats()
         assert stats["cache_misses"] >= 2
         assert stats["cache_hits"] >= 1
 
     def test_persistence(self, cache_module, tmp_path):
         cache_file = tmp_path / "persist_test.json"
-        
+
         cm1 = cache_module.CacheManager(cache_file)
         cm1.set_docstring("persistent", "data")
         cm1.save()
-        
+
         cm2 = cache_module.CacheManager(cache_file)
         result = cm2.get_docstring("persistent")
         assert result == "data"
@@ -339,15 +343,15 @@ class TestCache:
     def test_lfu_eviction(self, cache_module, tmp_path):
         cache_file = tmp_path / "eviction_test.json"
         cm = cache_module.CacheManager(cache_file)
-        
+
         cm.set_docstring("low_use", "rarely accessed")
         cm.set_docstring("high_use", "frequently accessed")
-        
+
         for _ in range(5):
             cm.get_docstring("high_use")
-        
+
         evicted = cm._evict_lfu(count=1)
-        
+
         assert evicted == 1
         assert cm.get_docstring("high_use") is not None
         data = cm.load()
@@ -356,18 +360,18 @@ class TestCache:
     def test_eviction_count_on_package_change(self, cache_module, tmp_path):
         cache_file = tmp_path / "evict_count_test.json"
         cm = cache_module.CacheManager(cache_file)
-        
+
         cm.update_packages([("pkg1", "1.0")])
         cm.set_docstring("func1", "doc1")
         cm.set_docstring("func2", "doc2")
         cm.set_docstring("func3", "doc3")
         cm.save()
-        
+
         initial_evictions = cm.get_stats()["evictions"]
-        
+
         cm.update_packages([("pkg1", "2.0")])
         cm.save()
-        
+
         stats = cm.get_stats()
         assert stats["evictions"] == initial_evictions + 3
         assert stats["docstring_count"] == 0
@@ -375,10 +379,10 @@ class TestCache:
     def test_corrupted_json_recovery(self, cache_module, tmp_path):
         cache_file = tmp_path / "corrupted.json"
         cache_file.write_text("{ invalid json }")
-        
+
         cm = cache_module.CacheManager(cache_file)
         data = cm.load()
-        
+
         assert data["version"] == "3"
         assert data["docs"] == {}
 
@@ -389,29 +393,29 @@ class TestCache:
             "docstrings": {"old": "data"},
         }
         cache_file.write_text(json.dumps(old_cache))
-        
+
         cm = cache_module.CacheManager(cache_file)
         data = cm.load()
-        
+
         assert data["version"] == "3"
         assert "old" not in data.get("docs", {})
 
     def test_docstring_invalidation_on_package_version_change(self, cache_module, tmp_path):
         cache_file = tmp_path / "version_change.json"
         cm = cache_module.CacheManager(cache_file)
-        
+
         cm.update_packages([("mypackage", "1.0.0")])
         cm.set_docstring("mypackage.func", "old docs", "mypackage", "1.0.0")
         cm.save()
-        
+
         assert cm.get_docstring("mypackage.func") == "old docs"
-        
+
         cm.update_packages([("mypackage", "2.0.0")])
         cm.save()
-        
+
         cm2 = cache_module.CacheManager(cache_file)
         cm2.update_packages([("mypackage", "2.0.0")])
-        
+
         result = cm2.get_docstring("mypackage.func")
         assert result is None
 
@@ -425,7 +429,7 @@ class TestCache:
         structured_doc = {"name": "test.func", "found": True, "signature": "test()"}
         cache_manager.set_doc("test.func", structured_doc, "test", "1.0.0")
         cache_manager.save()
-        
+
         result = cache_manager.get_doc("test.func")
         assert isinstance(result, dict)
         assert result["name"] == "test.func"
@@ -435,7 +439,7 @@ class TestCache:
         cache_manager.update_packages([("test", "1.0.0")])
         cache_manager.set_doc("test.raw", "raw documentation string", "test", "1.0.0")
         cache_manager.save()
-        
+
         result = cache_manager.get_doc("test.raw")
         assert isinstance(result, str)
         assert result == "raw documentation string"
@@ -444,7 +448,7 @@ class TestCache:
         cache_manager.set_doc("dict_entry", {"key": "value"})
         cache_manager.set_doc("str_entry", "string value")
         cache_manager.save()
-        
+
         data = cache_manager.load()
         assert data["docs"]["dict_entry"]["is_structured"] is True
         assert data["docs"]["str_entry"]["is_structured"] is False
@@ -454,38 +458,40 @@ class TestDocLookupWithCache:
     @pytest.fixture
     def cache_module(self):
         return load_module_from_path("cache", SCRIPTS_DIR / "cache.py")
-    
+
     @pytest.fixture
     def doc_module(self):
         return load_module_from_path("doc_lookup", SCRIPTS_DIR / "doc_lookup.py")
-    
-    def test_cache_hit_returns_cached_content(self, cache_module, doc_module, tmp_path, monkeypatch):
+
+    def test_cache_hit_returns_cached_content(
+        self, cache_module, doc_module, tmp_path, monkeypatch
+    ):
         cache_file = tmp_path / "doc_cache.json"
-        
+
         monkeypatch.setattr(cache_module, "CACHE_FILE", cache_file)
-        
+
         cm = cache_module.CacheManager(cache_file)
         cm.set_docstring("str", "CACHED: This is from cache")
         cm.save()
-        
+
         cm2 = cache_module.CacheManager(cache_file)
         result = cm2.get_docstring("str")
-        
+
         assert result == "CACHED: This is from cache"
 
     def test_structured_docs_are_cached(self, cache_module, doc_module, tmp_path, monkeypatch):
         cache_file = tmp_path / "structured_cache.json"
-        
+
         original_cache_file = cache_module.CACHE_FILE
         cache_module.CACHE_FILE = cache_file
-        
+
         try:
             result1 = doc_module.get_local_docs("json.dumps", use_cache=True, structured=True)
             assert isinstance(result1, dict)
             assert result1["found"] is True
-            
+
             assert cache_file.exists(), f"Cache file should be created at {cache_file}"
-            
+
             cm = cache_module.CacheManager(cache_file)
             cached = cm.get_doc("json.dumps")
             assert cached is not None, "json.dumps should be cached"
@@ -496,14 +502,14 @@ class TestDocLookupWithCache:
 
     def test_raw_docs_are_cached(self, cache_module, doc_module, tmp_path, monkeypatch):
         cache_file = tmp_path / "raw_cache.json"
-        
+
         original_cache_file = cache_module.CACHE_FILE
         cache_module.CACHE_FILE = cache_file
-        
+
         try:
             result1 = doc_module.get_local_docs("str", use_cache=True, structured=False)
             assert isinstance(result1, str)
-            
+
             cm = cache_module.CacheManager(cache_file)
             cached = cm.get_doc("str")
             assert cached is not None
@@ -516,12 +522,12 @@ class TestCodeAnalyzerEdgeCases:
     @pytest.fixture
     def module(self):
         return load_module_from_path("code_analyzer", SCRIPTS_DIR / "code_analyzer.py")
-    
+
     def test_empty_source(self, module):
         result = module.analyze_source("")
         assert isinstance(result, dict)
         assert "summary" in result
-    
+
     def test_complex_source(self, module):
         source = '''
 from typing import List
@@ -618,4 +624,3 @@ class TestExtractRaises:
         docstring = "Just a simple function.\n\nArgs:\n    x: An integer.\n"
         raises = module.extract_raises(docstring)
         assert raises == []
-

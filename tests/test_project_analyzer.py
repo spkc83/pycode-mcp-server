@@ -5,20 +5,18 @@ import sys
 import tempfile
 from pathlib import Path
 
-import pytest
-
 # Add scripts directory to path
 SCRIPTS_DIR = Path(__file__).resolve().parent.parent / "scripts"
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 from project_analyzer import (
-    discover_python_files,
-    build_import_graph,
-    detect_circular_dependencies,
-    classify_dependencies,
-    analyze_project,
     STDLIB_MODULES,
+    analyze_project,
+    build_import_graph,
+    classify_dependencies,
+    detect_circular_dependencies,
+    discover_python_files,
 )
 
 
@@ -161,14 +159,54 @@ class TestStdlibModulesComprehensive:
 
     def test_common_stdlib_modules(self):
         common = [
-            'os', 'sys', 'json', 're', 'typing', 'pathlib', 'collections',
-            'functools', 'itertools', 'datetime', 'time', 'math', 'random',
-            'hashlib', 'base64', 'urllib', 'http', 'email', 'html', 'xml',
-            'logging', 'unittest', 'ast', 'inspect', 'importlib', 'contextlib',
-            'dataclasses', 'enum', 'abc', 'copy', 'pickle', 'io', 'tempfile',
-            'shutil', 'glob', 'fnmatch', 'argparse', 'configparser', 'csv',
-            'sqlite3', 'threading', 'multiprocessing', 'subprocess', 'socket',
-            'ssl', 'asyncio', 'concurrent', 'queue',
+            "os",
+            "sys",
+            "json",
+            "re",
+            "typing",
+            "pathlib",
+            "collections",
+            "functools",
+            "itertools",
+            "datetime",
+            "time",
+            "math",
+            "random",
+            "hashlib",
+            "base64",
+            "urllib",
+            "http",
+            "email",
+            "html",
+            "xml",
+            "logging",
+            "unittest",
+            "ast",
+            "inspect",
+            "importlib",
+            "contextlib",
+            "dataclasses",
+            "enum",
+            "abc",
+            "copy",
+            "pickle",
+            "io",
+            "tempfile",
+            "shutil",
+            "glob",
+            "fnmatch",
+            "argparse",
+            "configparser",
+            "csv",
+            "sqlite3",
+            "threading",
+            "multiprocessing",
+            "subprocess",
+            "socket",
+            "ssl",
+            "asyncio",
+            "concurrent",
+            "queue",
         ]
         for mod in common:
             assert mod in STDLIB_MODULES, f"{mod} should be in stdlib set"
@@ -176,10 +214,29 @@ class TestStdlibModulesComprehensive:
     def test_previously_missing_stdlib_modules(self):
         """These were missing from the old hardcoded list."""
         previously_missing = [
-            'struct', 'array', 'textwrap', 'pdb', 'traceback', 'warnings',
-            'signal', 'zipfile', 'tarfile', 'gzip', 'bz2', 'lzma', 'decimal',
-            'fractions', 'statistics', 'string', 'difflib', 'pprint', 'dis',
-            'token', 'tokenize', 'builtins', '__future__',
+            "struct",
+            "array",
+            "textwrap",
+            "pdb",
+            "traceback",
+            "warnings",
+            "signal",
+            "zipfile",
+            "tarfile",
+            "gzip",
+            "bz2",
+            "lzma",
+            "decimal",
+            "fractions",
+            "statistics",
+            "string",
+            "difflib",
+            "pprint",
+            "dis",
+            "token",
+            "tokenize",
+            "builtins",
+            "__future__",
         ]
         for mod in previously_missing:
             assert mod in STDLIB_MODULES, f"{mod} should be in stdlib set"
@@ -231,9 +288,7 @@ class TestProjectAnalysis:
             (tmpdir_path / "main.py").write_text(
                 "import json\nfrom utils import helper\n\ndef main():\n    return helper()\n"
             )
-            (tmpdir_path / "utils.py").write_text(
-                "def helper():\n    return 42\n"
-            )
+            (tmpdir_path / "utils.py").write_text("def helper():\n    return 42\n")
 
             result = analyze_project(tmpdir, include_cross_refs=False)
             assert result["summary"]["total_files"] == 2
@@ -249,9 +304,12 @@ class TestCLI:
 
     def test_cli_full_analysis(self):
         import subprocess
+
         result = subprocess.run(
             [sys.executable, str(SCRIPTS_DIR / "project_analyzer.py"), str(SCRIPTS_DIR)],
-            capture_output=True, text=True, timeout=30,
+            capture_output=True,
+            text=True,
+            timeout=30,
         )
         assert result.returncode == 0
         data = json.loads(result.stdout)
@@ -260,10 +318,12 @@ class TestCLI:
 
     def test_cli_graph_only(self):
         import subprocess
+
         result = subprocess.run(
-            [sys.executable, str(SCRIPTS_DIR / "project_analyzer.py"),
-             str(SCRIPTS_DIR), "--graph"],
-            capture_output=True, text=True, timeout=30,
+            [sys.executable, str(SCRIPTS_DIR / "project_analyzer.py"), str(SCRIPTS_DIR), "--graph"],
+            capture_output=True,
+            text=True,
+            timeout=30,
         )
         assert result.returncode == 0
         data = json.loads(result.stdout)
@@ -271,10 +331,17 @@ class TestCLI:
 
     def test_cli_cycles_only(self):
         import subprocess
+
         result = subprocess.run(
-            [sys.executable, str(SCRIPTS_DIR / "project_analyzer.py"),
-             str(SCRIPTS_DIR), "--cycles"],
-            capture_output=True, text=True, timeout=30,
+            [
+                sys.executable,
+                str(SCRIPTS_DIR / "project_analyzer.py"),
+                str(SCRIPTS_DIR),
+                "--cycles",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=30,
         )
         assert result.returncode == 0
         data = json.loads(result.stdout)

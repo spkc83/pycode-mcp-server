@@ -26,10 +26,7 @@ if str(_SCRIPTS_DIR) not in sys.path:
 def _check_tool_available(tool: str) -> bool:
     """Check if a CLI tool is available on PATH."""
     try:
-        result = subprocess.run(
-            [tool, "--version"],
-            capture_output=True, text=True, timeout=10
-        )
+        result = subprocess.run([tool, "--version"], capture_output=True, text=True, timeout=10)
         return result.returncode == 0
     except (FileNotFoundError, subprocess.TimeoutExpired):
         return False
@@ -47,6 +44,7 @@ def get_jedi_diagnostics(source: str, path: Optional[str] = None) -> List[Dict[s
     """
     try:
         from jedi_engine import get_diagnostics, jedi_available
+
         if not jedi_available():
             return []
         return get_diagnostics(source=source, path=path)
@@ -70,23 +68,32 @@ def get_pyflakes_diagnostics(source: str, filepath: Optional[str] = None) -> Lis
 
     # Try programmatic API first
     try:
-        from pyflakes.api import check as pyflakes_check
         from io import StringIO
+
+        from pyflakes.api import check as pyflakes_check
 
         warnings_io = StringIO()
         filename = filepath or "<stdin>"
-        pyflakes_check(source, filename, reporter=type(
-            'Reporter', (), {
-                'unexpectedError': lambda self, fn, msg: warnings_io.write(f"{fn}:0:0: E {msg}\n"),
-                'syntaxError': lambda self, fn, msg, lineno, offset, text: warnings_io.write(
-                    f"{fn}:{lineno}:{offset}: E {msg}\n"
-                ),
-                'flake': lambda self, msg: warnings_io.write(f"{msg}\n"),
-            }
-        )())
+        pyflakes_check(
+            source,
+            filename,
+            reporter=type(
+                "Reporter",
+                (),
+                {
+                    "unexpectedError": lambda self, fn, msg: warnings_io.write(
+                        f"{fn}:0:0: E {msg}\n"
+                    ),
+                    "syntaxError": lambda self, fn, msg, lineno, offset, text: warnings_io.write(
+                        f"{fn}:{lineno}:{offset}: E {msg}\n"
+                    ),
+                    "flake": lambda self, msg: warnings_io.write(f"{msg}\n"),
+                },
+            )(),
+        )
 
         output = warnings_io.getvalue()
-        for line in output.strip().split('\n'):
+        for line in output.strip().split("\n"):
             if not line:
                 continue
             diag = _parse_pyflakes_line(line)
@@ -105,9 +112,11 @@ def get_pyflakes_diagnostics(source: str, filepath: Optional[str] = None) -> Lis
         result = subprocess.run(
             ["pyflakes"],
             input=source,
-            capture_output=True, text=True, timeout=30,
+            capture_output=True,
+            text=True,
+            timeout=30,
         )
-        for line in result.stdout.strip().split('\n'):
+        for line in result.stdout.strip().split("\n"):
             if not line:
                 continue
             diag = _parse_pyflakes_line(line)
@@ -122,7 +131,7 @@ def get_pyflakes_diagnostics(source: str, filepath: Optional[str] = None) -> Lis
 def _parse_pyflakes_line(line: str) -> Optional[Dict[str, Any]]:
     """Parse a single pyflakes output line into a diagnostic dict."""
     # Format: filename:line:col: message  or  filename:line: message
-    parts = line.split(':', 3)
+    parts = line.split(":", 3)
     if len(parts) < 3:
         return None
 
@@ -138,7 +147,7 @@ def _parse_pyflakes_line(line: str) -> Optional[Dict[str, Any]]:
             col = int(parts[2])
             message = parts[3].strip()
         except ValueError:
-            message = ':'.join(parts[2:]).strip()
+            message = ":".join(parts[2:]).strip()
     else:
         message = parts[2].strip()
 
@@ -172,12 +181,13 @@ def get_mypy_diagnostics(filepath: str) -> List[Dict[str, Any]]:
 
     try:
         result = subprocess.run(
-            ["mypy", "--no-color-output", "--no-error-summary",
-             "--show-column-numbers", filepath],
-            capture_output=True, text=True, timeout=60,
+            ["mypy", "--no-color-output", "--no-error-summary", "--show-column-numbers", filepath],
+            capture_output=True,
+            text=True,
+            timeout=60,
         )
 
-        for line in result.stdout.strip().split('\n'):
+        for line in result.stdout.strip().split("\n"):
             if not line:
                 continue
             diag = _parse_mypy_line(line)
@@ -192,7 +202,7 @@ def get_mypy_diagnostics(filepath: str) -> List[Dict[str, Any]]:
 def _parse_mypy_line(line: str) -> Optional[Dict[str, Any]]:
     """Parse a single mypy output line into a diagnostic dict."""
     # Format: filename:line:col: severity: message
-    parts = line.split(':', 4)
+    parts = line.split(":", 4)
     if len(parts) < 4:
         return None
 
@@ -212,7 +222,7 @@ def _parse_mypy_line(line: str) -> Optional[Dict[str, Any]]:
             message = parts[4].strip()
         except ValueError:
             severity_str = parts[2].strip()
-            message = ':'.join(parts[3:]).strip()
+            message = ":".join(parts[3:]).strip()
     else:
         severity_str = parts[2].strip()
         message = parts[3].strip() if len(parts) > 3 else ""
@@ -249,21 +259,25 @@ def get_pyright_diagnostics(filepath: str) -> List[Dict[str, Any]]:
     try:
         result = subprocess.run(
             ["pyright", "--outputjson", filepath],
-            capture_output=True, text=True, timeout=60,
+            capture_output=True,
+            text=True,
+            timeout=60,
         )
 
         try:
             data = json.loads(result.stdout)
             for diag_data in data.get("generalDiagnostics", []):
                 rng = diag_data.get("range", {}).get("start", {})
-                diagnostics.append({
-                    "line": rng.get("line", 0) + 1,  # pyright uses 0-indexed
-                    "column": rng.get("character", 0),
-                    "severity": diag_data.get("severity", "error"),
-                    "source": "pyright",
-                    "message": diag_data.get("message", ""),
-                    "rule": diag_data.get("rule", ""),
-                })
+                diagnostics.append(
+                    {
+                        "line": rng.get("line", 0) + 1,  # pyright uses 0-indexed
+                        "column": rng.get("character", 0),
+                        "severity": diag_data.get("severity", "error"),
+                        "source": "pyright",
+                        "message": diag_data.get("message", ""),
+                        "rule": diag_data.get("rule", ""),
+                    }
+                )
         except json.JSONDecodeError:
             pass
     except (subprocess.TimeoutExpired, OSError):
@@ -292,11 +306,11 @@ def run_diagnostics(
     if not file_path.exists():
         return {"error": f"File not found: {filepath}"}
 
-    if not file_path.suffix == '.py':
+    if not file_path.suffix == ".py":
         return {"error": f"Not a Python file: {filepath}"}
 
     try:
-        source = file_path.read_text(encoding='utf-8')
+        source = file_path.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError) as e:
         return {"error": f"Cannot read file: {e}"}
 
@@ -334,8 +348,9 @@ def run_diagnostics(
     return _build_result(filepath, all_diagnostics, sources_used)
 
 
-def _build_result(filepath: str, diagnostics: List[Dict[str, Any]],
-                  sources: List[str]) -> Dict[str, Any]:
+def _build_result(
+    filepath: str, diagnostics: List[Dict[str, Any]], sources: List[str]
+) -> Dict[str, Any]:
     """Build the final diagnostics result dictionary."""
     # Sort by line number
     diagnostics.sort(key=lambda d: (d.get("line", 0), d.get("column", 0)))
@@ -393,12 +408,14 @@ def run_project_diagnostics(
         warning_count = summary.get("warnings", 0)
 
         if error_count > 0 or warning_count > 0:
-            file_results.append({
-                "file": str(f.relative_to(root)),
-                "errors": error_count,
-                "warnings": warning_count,
-                "diagnostics": result.get("diagnostics", []),
-            })
+            file_results.append(
+                {
+                    "file": str(f.relative_to(root)),
+                    "errors": error_count,
+                    "warnings": warning_count,
+                    "diagnostics": result.get("diagnostics", []),
+                }
+            )
 
         total_errors += error_count
         total_warnings += warning_count
@@ -425,6 +442,7 @@ def _is_jedi_available() -> bool:
     """Check if Jedi is available."""
     try:
         from jedi_engine import jedi_available
+
         return jedi_available()
     except ImportError:
         return False
@@ -433,16 +451,13 @@ def _is_jedi_available() -> bool:
 def main() -> None:
     import argparse
 
-    parser = argparse.ArgumentParser(
-        description="Unified Python diagnostics engine"
-    )
+    parser = argparse.ArgumentParser(description="Unified Python diagnostics engine")
     parser.add_argument("path", help="Path to Python file or project directory")
-    parser.add_argument("--syntax-only", action="store_true",
-                        help="Only check for syntax errors")
-    parser.add_argument("--type-check", action="store_true",
-                        help="Include type checking (mypy/pyright)")
-    parser.add_argument("--summary", action="store_true",
-                        help="Project-wide diagnostic summary")
+    parser.add_argument("--syntax-only", action="store_true", help="Only check for syntax errors")
+    parser.add_argument(
+        "--type-check", action="store_true", help="Include type checking (mypy/pyright)"
+    )
+    parser.add_argument("--summary", action="store_true", help="Project-wide diagnostic summary")
 
     args = parser.parse_args()
 

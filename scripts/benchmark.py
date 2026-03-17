@@ -25,7 +25,7 @@ import time
 import tracemalloc
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(_SCRIPTS_DIR) not in sys.path:
@@ -167,7 +167,9 @@ def _suite_doc_lookup(iterations: int) -> SuiteResult:
         def jedi_lookup():
             get_local_docs("json.dumps", use_cache=False, structured=True)
 
-        results.append(run_benchmark("Jedi structured (json.dumps)", jedi_lookup, iterations=iterations))
+        results.append(
+            run_benchmark("Jedi structured (json.dumps)", jedi_lookup, iterations=iterations)
+        )
     except Exception as e:
         results.append(BenchmarkResult(f"Jedi structured (FAILED: {e})", 0, 0, 0, 0, 0, 0, 0))
 
@@ -178,7 +180,9 @@ def _suite_doc_lookup(iterations: int) -> SuiteResult:
         def inspect_lookup():
             _get_inspect_structured_docs("json.dumps")
 
-        results.append(run_benchmark("Inspect fallback (json.dumps)", inspect_lookup, iterations=iterations))
+        results.append(
+            run_benchmark("Inspect fallback (json.dumps)", inspect_lookup, iterations=iterations)
+        )
     except Exception as e:
         results.append(BenchmarkResult(f"Inspect fallback (FAILED: {e})", 0, 0, 0, 0, 0, 0, 0))
 
@@ -203,7 +207,9 @@ def _suite_doc_lookup(iterations: int) -> SuiteResult:
         def cached_lookup():
             get_local_docs("json.dumps", use_cache=True, structured=True)
 
-        results.append(run_benchmark("Cache hit (json.dumps)", cached_lookup, iterations=iterations))
+        results.append(
+            run_benchmark("Cache hit (json.dumps)", cached_lookup, iterations=iterations)
+        )
     except Exception as e:
         results.append(BenchmarkResult(f"Cache hit (FAILED: {e})", 0, 0, 0, 0, 0, 0, 0))
 
@@ -215,16 +221,20 @@ def _suite_doc_lookup(iterations: int) -> SuiteResult:
 
     if cache_result and jedi_result and cache_result.median_ms > 0:
         speedup = jedi_result.median_ms / cache_result.median_ms
-        comparisons.append({
-            "comparison": "Cache vs Jedi",
-            "speedup": f"{speedup:.1f}x faster",
-        })
+        comparisons.append(
+            {
+                "comparison": "Cache vs Jedi",
+                "speedup": f"{speedup:.1f}x faster",
+            }
+        )
     if cache_result and raw_result and cache_result.median_ms > 0:
         speedup = raw_result.median_ms / cache_result.median_ms
-        comparisons.append({
-            "comparison": "Cache vs Raw pydoc",
-            "speedup": f"{speedup:.1f}x faster",
-        })
+        comparisons.append(
+            {
+                "comparison": "Cache vs Raw pydoc",
+                "speedup": f"{speedup:.1f}x faster",
+            }
+        )
 
     return SuiteResult("Doc Lookup", results, comparisons)
 
@@ -246,15 +256,30 @@ def _suite_code_analysis(iterations: int) -> SuiteResult:
     try:
         from code_analyzer import analyze_source
 
-        results.append(run_benchmark(
-            "analyze_source (50 lines)", analyze_source, args=(small_src,), iterations=iterations
-        ))
-        results.append(run_benchmark(
-            "analyze_source (200 lines)", analyze_source, args=(medium_src,), iterations=iterations
-        ))
-        results.append(run_benchmark(
-            "analyze_source (500 lines)", analyze_source, args=(large_src,), iterations=iterations
-        ))
+        results.append(
+            run_benchmark(
+                "analyze_source (50 lines)",
+                analyze_source,
+                args=(small_src,),
+                iterations=iterations,
+            )
+        )
+        results.append(
+            run_benchmark(
+                "analyze_source (200 lines)",
+                analyze_source,
+                args=(medium_src,),
+                iterations=iterations,
+            )
+        )
+        results.append(
+            run_benchmark(
+                "analyze_source (500 lines)",
+                analyze_source,
+                args=(large_src,),
+                iterations=iterations,
+            )
+        )
     except Exception as e:
         results.append(BenchmarkResult(f"analyze_source (FAILED: {e})", 0, 0, 0, 0, 0, 0, 0))
 
@@ -275,7 +300,9 @@ def _suite_code_analysis(iterations: int) -> SuiteResult:
         def jedi_comp():
             get_completions(source=small_src, line=5, col=0)
 
-        results.append(run_benchmark("Jedi completions (50 lines)", jedi_comp, iterations=iterations))
+        results.append(
+            run_benchmark("Jedi completions (50 lines)", jedi_comp, iterations=iterations)
+        )
     except Exception as e:
         results.append(BenchmarkResult(f"Jedi completions (FAILED: {e})", 0, 0, 0, 0, 0, 0, 0))
 
@@ -300,50 +327,64 @@ def _suite_project_analysis(iterations: int) -> SuiteResult:
         )
 
         # --- File discovery ---
-        results.append(run_benchmark(
-            "discover_files (scripts/)",
-            discover_python_files,
-            args=(Path(_SCRIPTS_DIR),),
-            iterations=iterations,
-        ))
+        results.append(
+            run_benchmark(
+                "discover_files (scripts/)",
+                discover_python_files,
+                args=(Path(_SCRIPTS_DIR),),
+                iterations=iterations,
+            )
+        )
 
         # --- Import graph ---
         files = discover_python_files(Path(_SCRIPTS_DIR))
-        results.append(run_benchmark(
-            "build_import_graph (scripts/)",
-            build_import_graph,
-            args=(Path(_SCRIPTS_DIR), files),
-            iterations=iterations,
-        ))
+        results.append(
+            run_benchmark(
+                "build_import_graph (scripts/)",
+                build_import_graph,
+                args=(Path(_SCRIPTS_DIR), files),
+                iterations=iterations,
+            )
+        )
 
         # --- Cycle detection ---
         graph = build_import_graph(Path(_SCRIPTS_DIR), files)
-        results.append(run_benchmark(
-            "detect_cycles (scripts/)",
-            detect_circular_dependencies,
-            args=(graph,),
-            iterations=iterations,
-        ))
+        results.append(
+            run_benchmark(
+                "detect_cycles (scripts/)",
+                detect_circular_dependencies,
+                args=(graph,),
+                iterations=iterations,
+            )
+        )
 
         # --- Full analysis ---
         def full_analysis():
             analyze_project(str(_SCRIPTS_DIR), include_cross_refs=False)
 
-        results.append(run_benchmark(
-            "full analysis (scripts/)", full_analysis, iterations=max(5, iterations // 4)
-        ))
+        results.append(
+            run_benchmark(
+                "full analysis (scripts/)", full_analysis, iterations=max(5, iterations // 4)
+            )
+        )
 
         # --- Synthetic project (50 files) ---
         syn_project = _generate_project(50)
         try:
+
             def syn_analysis():
                 analyze_project(str(syn_project), include_cross_refs=False)
 
-            results.append(run_benchmark(
-                "full analysis (50 synthetic files)", syn_analysis, iterations=max(3, iterations // 5)
-            ))
+            results.append(
+                run_benchmark(
+                    "full analysis (50 synthetic files)",
+                    syn_analysis,
+                    iterations=max(3, iterations // 5),
+                )
+            )
         finally:
             import shutil
+
             shutil.rmtree(syn_project, ignore_errors=True)
 
     except Exception as e:
@@ -364,9 +405,11 @@ def _suite_environment(iterations: int) -> SuiteResult:
     try:
         from inspect_env import get_environment_info
 
-        results.append(run_benchmark(
-            "get_environment_info()", get_environment_info, iterations=max(3, iterations // 5)
-        ))
+        results.append(
+            run_benchmark(
+                "get_environment_info()", get_environment_info, iterations=max(3, iterations // 5)
+            )
+        )
     except Exception as e:
         results.append(BenchmarkResult(f"get_environment_info (FAILED: {e})", 0, 0, 0, 0, 0, 0, 0))
 
@@ -374,12 +417,16 @@ def _suite_environment(iterations: int) -> SuiteResult:
     def raw_pip():
         subprocess.run(
             [sys.executable, "-m", "pip", "list", "--format=json"],
-            capture_output=True, text=True, timeout=30,
+            capture_output=True,
+            text=True,
+            timeout=30,
         )
 
-    results.append(run_benchmark(
-        "pip list --format=json (no skill)", raw_pip, iterations=max(3, iterations // 5)
-    ))
+    results.append(
+        run_benchmark(
+            "pip list --format=json (no skill)", raw_pip, iterations=max(3, iterations // 5)
+        )
+    )
 
     return SuiteResult("Environment Inspection", results)
 
@@ -397,19 +444,23 @@ def _suite_diagnostics(iterations: int) -> SuiteResult:
     try:
         from diagnostics import get_jedi_diagnostics, get_pyflakes_diagnostics
 
-        results.append(run_benchmark(
-            "Jedi diagnostics (100 lines)",
-            get_jedi_diagnostics,
-            args=(source,),
-            iterations=iterations,
-        ))
+        results.append(
+            run_benchmark(
+                "Jedi diagnostics (100 lines)",
+                get_jedi_diagnostics,
+                args=(source,),
+                iterations=iterations,
+            )
+        )
 
-        results.append(run_benchmark(
-            "Pyflakes diagnostics (100 lines)",
-            get_pyflakes_diagnostics,
-            args=(source, "bench.py"),
-            iterations=iterations,
-        ))
+        results.append(
+            run_benchmark(
+                "Pyflakes diagnostics (100 lines)",
+                get_pyflakes_diagnostics,
+                args=(source, "bench.py"),
+                iterations=iterations,
+            )
+        )
     except Exception as e:
         results.append(BenchmarkResult(f"Diagnostics (FAILED: {e})", 0, 0, 0, 0, 0, 0, 0))
 
@@ -452,11 +503,13 @@ def format_json(suites: List[SuiteResult]) -> str:
     """Format results as JSON."""
     data = []
     for suite in suites:
-        data.append({
-            "suite": suite.suite_name,
-            "benchmarks": [asdict(b) for b in suite.benchmarks],
-            "comparisons": suite.comparisons,
-        })
+        data.append(
+            {
+                "suite": suite.suite_name,
+                "benchmarks": [asdict(b) for b in suite.benchmarks],
+                "comparisons": suite.comparisons,
+            }
+        )
     return json.dumps(data, indent=2)
 
 
@@ -464,9 +517,9 @@ def format_table(suites: List[SuiteResult]) -> str:
     """Compact table format."""
     lines = []
     for suite in suites:
-        lines.append(f"\n{'='*60}")
+        lines.append(f"\n{'=' * 60}")
         lines.append(f"  {suite.suite_name}")
-        lines.append(f"{'='*60}")
+        lines.append(f"{'=' * 60}")
         for b in suite.benchmarks:
             lines.append(f"  {b.name:<40} {b.median_ms:>8.1f} ms  ({b.memory_peak_kb:.0f} KB)")
         for c in suite.comparisons:
@@ -488,7 +541,9 @@ def main() -> None:
         choices=list(SUITE_RUNNERS.keys()),
         help="Run a specific suite only",
     )
-    parser.add_argument("--iterations", type=int, default=20, help="Iterations per benchmark (default: 20)")
+    parser.add_argument(
+        "--iterations", type=int, default=20, help="Iterations per benchmark (default: 20)"
+    )
     parser.add_argument(
         "--format",
         choices=["markdown", "json", "table"],

@@ -17,23 +17,26 @@ import subprocess
 import sys
 from pathlib import Path
 
-import pytest
-
 SCRIPTS_DIR = Path(__file__).resolve().parent.parent.parent / "scripts"
 
 
 class TestTask09ApiIntegration:
-
     def test_script_exists(self):
         assert (SCRIPTS_DIR / "code_search.py").exists(), "code_search.py not created"
 
     def test_script_imports_cleanly(self):
         result = subprocess.run(
-            [sys.executable, "-c", "import importlib.util; "
-             f"spec = importlib.util.spec_from_file_location('cs', '{SCRIPTS_DIR / 'code_search.py'}'); "
-             f"mod = importlib.util.module_from_spec(spec); "
-             f"spec.loader.exec_module(mod)"],
-            capture_output=True, text=True, timeout=30,
+            [
+                sys.executable,
+                "-c",
+                "import importlib.util; "
+                f"spec = importlib.util.spec_from_file_location('cs', '{SCRIPTS_DIR / 'code_search.py'}'); "
+                f"mod = importlib.util.module_from_spec(spec); "
+                f"spec.loader.exec_module(mod)",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=30,
         )
         # Should not crash on import (may fail if jedi not available, that's OK)
         assert "SyntaxError" not in result.stderr, f"Syntax error: {result.stderr}"

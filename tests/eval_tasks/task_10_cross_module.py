@@ -15,29 +15,28 @@ import subprocess
 import sys
 from pathlib import Path
 
-import pytest
-
 SCRIPTS_DIR = Path(__file__).resolve().parent.parent.parent / "scripts"
 
 
 class TestTask10CrossModule:
-
     def test_health_check_accepts_flag(self):
         """health_check.py should accept --health-detail without crashing."""
         result = subprocess.run(
             [sys.executable, str(SCRIPTS_DIR / "health_check.py"), "--health-detail"],
-            capture_output=True, text=True, timeout=30,
+            capture_output=True,
+            text=True,
+            timeout=30,
         )
         # Should not crash with unrecognized argument error
-        assert "unrecognized" not in result.stderr.lower(), (
-            f"Flag not recognized: {result.stderr}"
-        )
+        assert "unrecognized" not in result.stderr.lower(), f"Flag not recognized: {result.stderr}"
 
     def test_health_detail_includes_diagnostics(self):
         """Output with --health-detail should contain diagnostic info."""
         result = subprocess.run(
             [sys.executable, str(SCRIPTS_DIR / "health_check.py"), "--health-detail"],
-            capture_output=True, text=True, timeout=60,
+            capture_output=True,
+            text=True,
+            timeout=60,
         )
         output = result.stdout.lower()
         # Should mention diagnostics in some form
@@ -48,7 +47,9 @@ class TestTask10CrossModule:
         """health_check.py should still work without the new flag."""
         result = subprocess.run(
             [sys.executable, str(SCRIPTS_DIR / "health_check.py")],
-            capture_output=True, text=True, timeout=30,
+            capture_output=True,
+            text=True,
+            timeout=30,
         )
         assert result.returncode == 0 or "error" not in result.stderr.lower()
 

@@ -5,18 +5,16 @@ import sys
 import tempfile
 from pathlib import Path
 
-import pytest
-
 # Add scripts directory to path
 SCRIPTS_DIR = Path(__file__).resolve().parent.parent / "scripts"
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 from diagnostics import (
+    _build_result,
     get_jedi_diagnostics,
     get_pyflakes_diagnostics,
     run_diagnostics,
-    _build_result,
 )
 
 
@@ -172,7 +170,9 @@ class TestCLI:
 
             result = subprocess.run(
                 [sys.executable, str(SCRIPTS_DIR / "diagnostics.py"), f.name],
-                capture_output=True, text=True, timeout=30,
+                capture_output=True,
+                text=True,
+                timeout=30,
             )
             assert result.returncode == 0
             data = json.loads(result.stdout)
@@ -183,7 +183,9 @@ class TestCLI:
 
         result = subprocess.run(
             [sys.executable, str(SCRIPTS_DIR / "diagnostics.py"), str(SCRIPTS_DIR)],
-            capture_output=True, text=True, timeout=60,
+            capture_output=True,
+            text=True,
+            timeout=60,
         )
         assert result.returncode == 0
         data = json.loads(result.stdout)

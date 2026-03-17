@@ -10,7 +10,6 @@ import ast
 import json
 import pydoc
 import sys
-import tempfile
 import time
 from io import StringIO
 from pathlib import Path
@@ -26,13 +25,13 @@ if str(SCRIPTS_DIR) not in sys.path:
 # ---------------------------------------------------------------------------
 
 THRESHOLDS = {
-    "doc_lookup_jedi_ms": 2000,      # Max 2s for Jedi lookup
-    "doc_lookup_inspect_ms": 1000,   # Max 1s for inspect fallback
-    "doc_lookup_cache_ms": 50,       # Max 50ms for cache hit
-    "code_analysis_small_ms": 500,   # Max 500ms for small file
-    "code_analysis_medium_ms": 2000, # Max 2s for medium file
-    "project_analysis_ms": 10000,    # Max 10s for project analysis
-    "token_savings_pct": 30,         # Min 30% token savings
+    "doc_lookup_jedi_ms": 2000,  # Max 2s for Jedi lookup
+    "doc_lookup_inspect_ms": 1000,  # Max 1s for inspect fallback
+    "doc_lookup_cache_ms": 50,  # Max 50ms for cache hit
+    "code_analysis_small_ms": 500,  # Max 500ms for small file
+    "code_analysis_medium_ms": 2000,  # Max 2s for medium file
+    "project_analysis_ms": 10000,  # Max 10s for project analysis
+    "token_savings_pct": 30,  # Min 30% token savings
 }
 
 
@@ -119,13 +118,8 @@ class TestCodeAnalysisPerformance:
 
     @pytest.fixture
     def small_source(self):
-        return (
-            '"""Module."""\n'
-            "import os\nimport json\n\n"
-            + "\n".join(
-                f"def func_{i}(x: int) -> str:\n    return str(x)\n"
-                for i in range(5)
-            )
+        return '"""Module."""\nimport os\nimport json\n\n' + "\n".join(
+            f"def func_{i}(x: int) -> str:\n    return str(x)\n" for i in range(5)
         )
 
     @pytest.fixture
@@ -187,9 +181,7 @@ class TestProjectAnalysisPerformance:
             pytest.skip("project_analyzer module not available")
 
         elapsed = _time_ms(analyze_project, str(SCRIPTS_DIR), include_cross_refs=False)
-        assert elapsed < THRESHOLDS["project_analysis_ms"], (
-            f"Project analysis took {elapsed:.0f}ms"
-        )
+        assert elapsed < THRESHOLDS["project_analysis_ms"], f"Project analysis took {elapsed:.0f}ms"
 
     def test_file_discovery_fast(self):
         try:
@@ -207,7 +199,7 @@ class TestProjectAnalysisPerformance:
             pytest.skip("project_analyzer module not available")
 
         # Test with a non-trivial graph
-        graph = {f"mod_{i}": [f"mod_{(i+1) % 20}"] for i in range(20)}
+        graph = {f"mod_{i}": [f"mod_{(i + 1) % 20}"] for i in range(20)}
         elapsed = _time_ms(detect_circular_dependencies, graph)
         assert elapsed < 200, f"Cycle detection took {elapsed:.0f}ms (should be <200ms)"
 
@@ -241,7 +233,9 @@ class TestTokenSavings:
 
         # With skill
         result = get_local_docs("json.dumps", use_cache=False, structured=True)
-        skill_text = json.dumps(result, indent=2, default=str) if isinstance(result, dict) else str(result)
+        skill_text = (
+            json.dumps(result, indent=2, default=str) if isinstance(result, dict) else str(result)
+        )
         skill_tokens = _estimate_tokens(skill_text)
 
         # Without skill (raw pydoc)
@@ -295,12 +289,16 @@ class TestTokenSavings:
         from doc_lookup import get_local_docs
 
         fresh = get_local_docs("str.upper", use_cache=False, structured=True)
-        fresh_text = json.dumps(fresh, indent=2, default=str) if isinstance(fresh, dict) else str(fresh)
+        fresh_text = (
+            json.dumps(fresh, indent=2, default=str) if isinstance(fresh, dict) else str(fresh)
+        )
 
         # Prime + use cache
         get_local_docs("str.upper", use_cache=True, structured=True)
         cached = get_local_docs("str.upper", use_cache=True, structured=True)
-        cached_text = json.dumps(cached, indent=2, default=str) if isinstance(cached, dict) else str(cached)
+        cached_text = (
+            json.dumps(cached, indent=2, default=str) if isinstance(cached, dict) else str(cached)
+        )
 
         fresh_tokens = _estimate_tokens(fresh_text)
         cached_tokens = _estimate_tokens(cached_text)
@@ -337,11 +335,7 @@ class TestInformationDensity:
         result = get_local_docs("json.dumps", use_cache=False, structured=True)
         assert isinstance(result, dict)
         # Check for parameters in some form
-        has_params = (
-            "parameters" in result
-            or "params" in result
-            or "signature" in result
-        )
+        has_params = "parameters" in result or "params" in result or "signature" in result
         assert has_params, f"No parameter info in: {list(result.keys())}"
 
     def test_structured_docs_have_name(self):
@@ -501,11 +495,20 @@ class TestBenchmarkRunner:
         assert "diagnostics" in SUITE_RUNNERS
 
     def test_format_functions(self):
-        from benchmark import BenchmarkResult, SuiteResult, format_markdown, format_json, format_table
+        from benchmark import (
+            BenchmarkResult,
+            SuiteResult,
+            format_json,
+            format_markdown,
+            format_table,
+        )
 
-        suite = SuiteResult("Test", [
-            BenchmarkResult("bench1", 10, 1.0, 0.9, 0.5, 2.0, 0.3, 100),
-        ])
+        suite = SuiteResult(
+            "Test",
+            [
+                BenchmarkResult("bench1", 10, 1.0, 0.9, 0.5, 2.0, 0.3, 100),
+            ],
+        )
         md = format_markdown([suite])
         assert "bench1" in md
         assert "Test" in md

@@ -14,27 +14,27 @@ Difficulty: Medium
 import sys
 from pathlib import Path
 
-import pytest
-
 SCRIPTS_DIR = Path(__file__).resolve().parent.parent.parent / "scripts"
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 
 class TestTask06Refactor:
-
     def test_method_exists(self):
         from cache import CacheManager
+
         mgr = CacheManager.__new__(CacheManager)
         assert hasattr(mgr, "get_or_set"), "CacheManager should have get_or_set method"
 
     def test_get_or_set_callable(self):
         from cache import CacheManager
+
         mgr = CacheManager.__new__(CacheManager)
         assert callable(getattr(mgr, "get_or_set", None))
 
     def test_get_or_set_calls_factory(self, tmp_path):
         from cache import CacheManager
+
         mgr = CacheManager(cache_dir=str(tmp_path / ".cache"))
 
         call_count = {"n": 0}
@@ -49,6 +49,7 @@ class TestTask06Refactor:
 
     def test_get_or_set_returns_cached(self, tmp_path):
         from cache import CacheManager
+
         mgr = CacheManager(cache_dir=str(tmp_path / ".cache"))
 
         call_count = {"n": 0}

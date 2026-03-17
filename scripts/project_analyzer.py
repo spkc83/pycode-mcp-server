@@ -16,7 +16,6 @@ from __future__ import annotations
 import ast
 import json
 import sys
-from collections import defaultdict
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
@@ -29,46 +28,217 @@ from code_analyzer import analyze_source
 
 def _get_stdlib_modules() -> Set[str]:
     """Get a comprehensive set of standard library module names."""
-    if hasattr(sys, 'stdlib_module_names'):
+    if hasattr(sys, "stdlib_module_names"):
         return set(sys.stdlib_module_names)
 
     # Comprehensive fallback for Python 3.9
     return {
-        '__future__', '_thread', 'abc', 'aifc', 'argparse', 'array', 'ast',
-        'asynchat', 'asyncio', 'asyncore', 'atexit', 'audioop', 'base64',
-        'bdb', 'binascii', 'binhex', 'bisect', 'builtins', 'bz2',
-        'calendar', 'cgi', 'cgitb', 'chunk', 'cmath', 'cmd', 'code',
-        'codecs', 'codeop', 'collections', 'colorsys', 'compileall',
-        'concurrent', 'configparser', 'contextlib', 'contextvars', 'copy',
-        'copyreg', 'cProfile', 'crypt', 'csv', 'ctypes', 'curses',
-        'dataclasses', 'datetime', 'dbm', 'decimal', 'difflib', 'dis',
-        'distutils', 'doctest', 'email', 'encodings', 'enum', 'errno',
-        'faulthandler', 'fcntl', 'filecmp', 'fileinput', 'fnmatch',
-        'fractions', 'ftplib', 'functools', 'gc', 'getopt', 'getpass',
-        'gettext', 'glob', 'graphlib', 'grp', 'gzip', 'hashlib', 'heapq',
-        'hmac', 'html', 'http', 'idlelib', 'imaplib', 'imghdr', 'imp',
-        'importlib', 'inspect', 'io', 'ipaddress', 'itertools', 'json',
-        'keyword', 'lib2to3', 'linecache', 'locale', 'logging', 'lzma',
-        'mailbox', 'mailcap', 'marshal', 'math', 'mimetypes', 'mmap',
-        'modulefinder', 'multiprocessing', 'netrc', 'nis', 'nntplib',
-        'numbers', 'operator', 'optparse', 'os', 'ossaudiodev',
-        'pathlib', 'pdb', 'pickle', 'pickletools', 'pipes', 'pkgutil',
-        'platform', 'plistlib', 'poplib', 'posix', 'posixpath', 'pprint',
-        'profile', 'pstats', 'pty', 'pwd', 'py_compile', 'pyclbr',
-        'pydoc', 'queue', 'quopri', 'random', 're', 'readline', 'reprlib',
-        'resource', 'rlcompleter', 'runpy', 'sched', 'secrets', 'select',
-        'selectors', 'shelve', 'shlex', 'shutil', 'signal', 'site',
-        'smtpd', 'smtplib', 'sndhdr', 'socket', 'socketserver', 'sqlite3',
-        'ssl', 'stat', 'statistics', 'string', 'stringprep', 'struct',
-        'subprocess', 'sunau', 'symtable', 'sys', 'sysconfig', 'syslog',
-        'tabnanny', 'tarfile', 'telnetlib', 'tempfile', 'termios', 'test',
-        'textwrap', 'threading', 'time', 'timeit', 'tkinter', 'token',
-        'tokenize', 'trace', 'traceback', 'tracemalloc', 'tty', 'turtle',
-        'turtledemo', 'types', 'typing', 'unicodedata', 'unittest',
-        'urllib', 'uu', 'uuid', 'venv', 'warnings', 'wave', 'weakref',
-        'webbrowser', 'winreg', 'winsound', 'wsgiref', 'xdrlib', 'xml',
-        'xmlrpc', 'zipapp', 'zipfile', 'zipimport', 'zlib',
-        '_io', '_collections_abc', 'typing_extensions',
+        "__future__",
+        "_thread",
+        "abc",
+        "aifc",
+        "argparse",
+        "array",
+        "ast",
+        "asynchat",
+        "asyncio",
+        "asyncore",
+        "atexit",
+        "audioop",
+        "base64",
+        "bdb",
+        "binascii",
+        "binhex",
+        "bisect",
+        "builtins",
+        "bz2",
+        "calendar",
+        "cgi",
+        "cgitb",
+        "chunk",
+        "cmath",
+        "cmd",
+        "code",
+        "codecs",
+        "codeop",
+        "collections",
+        "colorsys",
+        "compileall",
+        "concurrent",
+        "configparser",
+        "contextlib",
+        "contextvars",
+        "copy",
+        "copyreg",
+        "cProfile",
+        "crypt",
+        "csv",
+        "ctypes",
+        "curses",
+        "dataclasses",
+        "datetime",
+        "dbm",
+        "decimal",
+        "difflib",
+        "dis",
+        "distutils",
+        "doctest",
+        "email",
+        "encodings",
+        "enum",
+        "errno",
+        "faulthandler",
+        "fcntl",
+        "filecmp",
+        "fileinput",
+        "fnmatch",
+        "fractions",
+        "ftplib",
+        "functools",
+        "gc",
+        "getopt",
+        "getpass",
+        "gettext",
+        "glob",
+        "graphlib",
+        "grp",
+        "gzip",
+        "hashlib",
+        "heapq",
+        "hmac",
+        "html",
+        "http",
+        "idlelib",
+        "imaplib",
+        "imghdr",
+        "imp",
+        "importlib",
+        "inspect",
+        "io",
+        "ipaddress",
+        "itertools",
+        "json",
+        "keyword",
+        "lib2to3",
+        "linecache",
+        "locale",
+        "logging",
+        "lzma",
+        "mailbox",
+        "mailcap",
+        "marshal",
+        "math",
+        "mimetypes",
+        "mmap",
+        "modulefinder",
+        "multiprocessing",
+        "netrc",
+        "nis",
+        "nntplib",
+        "numbers",
+        "operator",
+        "optparse",
+        "os",
+        "ossaudiodev",
+        "pathlib",
+        "pdb",
+        "pickle",
+        "pickletools",
+        "pipes",
+        "pkgutil",
+        "platform",
+        "plistlib",
+        "poplib",
+        "posix",
+        "posixpath",
+        "pprint",
+        "profile",
+        "pstats",
+        "pty",
+        "pwd",
+        "py_compile",
+        "pyclbr",
+        "pydoc",
+        "queue",
+        "quopri",
+        "random",
+        "re",
+        "readline",
+        "reprlib",
+        "resource",
+        "rlcompleter",
+        "runpy",
+        "sched",
+        "secrets",
+        "select",
+        "selectors",
+        "shelve",
+        "shlex",
+        "shutil",
+        "signal",
+        "site",
+        "smtpd",
+        "smtplib",
+        "sndhdr",
+        "socket",
+        "socketserver",
+        "sqlite3",
+        "ssl",
+        "stat",
+        "statistics",
+        "string",
+        "stringprep",
+        "struct",
+        "subprocess",
+        "sunau",
+        "symtable",
+        "sys",
+        "sysconfig",
+        "syslog",
+        "tabnanny",
+        "tarfile",
+        "telnetlib",
+        "tempfile",
+        "termios",
+        "test",
+        "textwrap",
+        "threading",
+        "time",
+        "timeit",
+        "tkinter",
+        "token",
+        "tokenize",
+        "trace",
+        "traceback",
+        "tracemalloc",
+        "tty",
+        "turtle",
+        "turtledemo",
+        "types",
+        "typing",
+        "unicodedata",
+        "unittest",
+        "urllib",
+        "uu",
+        "uuid",
+        "venv",
+        "warnings",
+        "wave",
+        "weakref",
+        "webbrowser",
+        "winreg",
+        "winsound",
+        "wsgiref",
+        "xdrlib",
+        "xml",
+        "xmlrpc",
+        "zipapp",
+        "zipfile",
+        "zipimport",
+        "zlib",
+        "_io",
+        "_collections_abc",
+        "typing_extensions",
     }
 
 
@@ -95,7 +265,7 @@ def discover_python_files(
 
     def _should_exclude(p: Path) -> bool:
         for pattern in exclude_patterns:
-            if p.match(pattern) or p.name.startswith('.'):
+            if p.match(pattern) or p.name.startswith("."):
                 return True
         return False
 
@@ -106,9 +276,9 @@ def discover_python_files(
             for entry in sorted(directory.iterdir()):
                 if _should_exclude(entry):
                     continue
-                if entry.is_file() and entry.suffix in ('.py', '.pyi'):
+                if entry.is_file() and entry.suffix in (".py", ".pyi"):
                     files.append(entry)
-                elif entry.is_dir() and not entry.name.startswith('__'):
+                elif entry.is_dir() and not entry.name.startswith("__"):
                     _scan(entry, depth + 1)
         except PermissionError:
             pass
@@ -137,11 +307,13 @@ def _extract_imports_from_source(source: str) -> Tuple[List[str], List[Dict[str,
                 module_imports.append(alias.name)
         elif isinstance(node, ast.ImportFrom):
             if node.module:
-                from_imports.append({
-                    "module": node.module,
-                    "names": [a.name for a in node.names],
-                    "level": node.level,
-                })
+                from_imports.append(
+                    {
+                        "module": node.module,
+                        "names": [a.name for a in node.names],
+                        "level": node.level,
+                    }
+                )
 
     return module_imports, from_imports
 
@@ -154,12 +326,12 @@ def _path_to_module_name(file_path: Path, root: Path) -> str:
         return file_path.stem
 
     parts = list(rel.parts)
-    if parts[-1] == '__init__.py':
+    if parts[-1] == "__init__.py":
         parts = parts[:-1]
     else:
-        parts[-1] = parts[-1].replace('.py', '').replace('.pyi', '')
+        parts[-1] = parts[-1].replace(".py", "").replace(".pyi", "")
 
-    return '.'.join(parts)
+    return ".".join(parts)
 
 
 def build_import_graph(
@@ -180,16 +352,16 @@ def build_import_graph(
     for f in files:
         mod_name = _path_to_module_name(f, root)
         local_modules.add(mod_name)
-        parts = mod_name.split('.')
+        parts = mod_name.split(".")
         for i in range(1, len(parts)):
-            local_modules.add('.'.join(parts[:i]))
+            local_modules.add(".".join(parts[:i]))
 
     graph: Dict[str, List[str]] = {}
 
     for f in files:
         mod_name = _path_to_module_name(f, root)
         try:
-            source = f.read_text(encoding='utf-8')
+            source = f.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError):
             continue
 
@@ -197,7 +369,7 @@ def build_import_graph(
         deps: List[str] = []
 
         for imp in module_imports:
-            top_level = imp.split('.')[0]
+            top_level = imp.split(".")[0]
             if top_level in local_modules or imp in local_modules:
                 deps.append(imp)
 
@@ -206,7 +378,7 @@ def build_import_graph(
                 # Relative import — part of this project
                 deps.append(fi["module"])
             else:
-                top_level = fi["module"].split('.')[0]
+                top_level = fi["module"].split(".")[0]
                 if top_level in local_modules or fi["module"] in local_modules:
                     deps.append(fi["module"])
 
@@ -268,18 +440,18 @@ def classify_dependencies(
 
     for f in files:
         try:
-            source = f.read_text(encoding='utf-8')
+            source = f.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError):
             continue
 
         module_imports, from_imports = _extract_imports_from_source(source)
 
         for imp in module_imports:
-            all_imports.add(imp.split('.')[0])
+            all_imports.add(imp.split(".")[0])
 
         for fi in from_imports:
             if fi["level"] == 0 and fi["module"]:
-                all_imports.add(fi["module"].split('.')[0])
+                all_imports.add(fi["module"].split(".")[0])
 
     stdlib = sorted([m for m in all_imports if m in STDLIB_MODULES])
     third_party = sorted([m for m in all_imports if m not in STDLIB_MODULES and m])
@@ -333,21 +505,23 @@ def analyze_project(
 
     for f in files:
         try:
-            source = f.read_text(encoding='utf-8')
+            source = f.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError):
             continue
 
-        line_count = source.count('\n') + 1
+        line_count = source.count("\n") + 1
         total_lines += line_count
 
         try:
             analysis = analyze_source(source)
         except SyntaxError:
-            result["files"].append({
-                "path": str(f.relative_to(root_path)),
-                "error": "SyntaxError",
-                "lines": line_count,
-            })
+            result["files"].append(
+                {
+                    "path": str(f.relative_to(root_path)),
+                    "error": "SyntaxError",
+                    "lines": line_count,
+                }
+            )
             continue
 
         func_count = len(analysis.get("functions", []))
@@ -390,19 +564,20 @@ def analyze_project(
     if include_cross_refs:
         try:
             from jedi_engine import jedi_available, search_project
+
             if jedi_available():
                 # Get top-level definitions and find references
                 cross_refs: Dict[str, List[Dict[str, Any]]] = {}
                 for f in files[:50]:  # Limit for performance
                     try:
-                        source = f.read_text(encoding='utf-8')
+                        source = f.read_text(encoding="utf-8")
                         tree = ast.parse(source)
                     except (OSError, SyntaxError):
                         continue
 
                     for node in ast.walk(tree):
                         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-                            if not node.name.startswith('_'):
+                            if not node.name.startswith("_"):
                                 refs = search_project(node.name, str(root_path))
                                 if refs and not any("error" in r for r in refs):
                                     cross_refs[node.name] = [
@@ -434,24 +609,26 @@ def analyze_project(
 def main() -> None:
     import argparse
 
-    parser = argparse.ArgumentParser(
-        description="Project-level Python code analysis"
-    )
+    parser = argparse.ArgumentParser(description="Project-level Python code analysis")
     parser.add_argument("path", help="Root directory of the Python project")
-    parser.add_argument("--exclude", type=str, default="",
-                        help="Comma-separated glob patterns to exclude (e.g., 'test*,docs')")
-    parser.add_argument("--depth", type=int, default=None,
-                        help="Maximum directory depth to traverse")
-    parser.add_argument("--graph", action="store_true",
-                        help="Show only the import graph")
-    parser.add_argument("--cycles", action="store_true",
-                        help="Show only circular dependencies")
-    parser.add_argument("--cross-refs", action="store_true",
-                        help="Include cross-references (uses Jedi, slower)")
+    parser.add_argument(
+        "--exclude",
+        type=str,
+        default="",
+        help="Comma-separated glob patterns to exclude (e.g., 'test*,docs')",
+    )
+    parser.add_argument(
+        "--depth", type=int, default=None, help="Maximum directory depth to traverse"
+    )
+    parser.add_argument("--graph", action="store_true", help="Show only the import graph")
+    parser.add_argument("--cycles", action="store_true", help="Show only circular dependencies")
+    parser.add_argument(
+        "--cross-refs", action="store_true", help="Include cross-references (uses Jedi, slower)"
+    )
 
     args = parser.parse_args()
 
-    exclude = [p.strip() for p in args.exclude.split(',') if p.strip()] if args.exclude else None
+    exclude = [p.strip() for p in args.exclude.split(",") if p.strip()] if args.exclude else None
 
     if args.graph:
         root_path = Path(args.path).resolve()
