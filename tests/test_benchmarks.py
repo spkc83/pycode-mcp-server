@@ -72,8 +72,9 @@ class TestDocLookupPerformance:
         from doc_lookup import get_structured_docs
 
         elapsed = _time_ms(get_structured_docs, "json.dumps")
-        assert elapsed < THRESHOLDS["doc_lookup_inspect_ms"], (
-            f"Inspect fallback took {elapsed:.0f}ms (threshold: {THRESHOLDS['doc_lookup_inspect_ms']}ms)"
+        threshold = THRESHOLDS["doc_lookup_inspect_ms"]
+        assert elapsed < threshold, (
+            f"Inspect fallback took {elapsed:.0f}ms (threshold: {threshold}ms)"
         )
 
     def test_cache_hit_under_threshold(self):
@@ -104,7 +105,8 @@ class TestDocLookupPerformance:
         if warm_time > 0:
             speedup = cold_time / warm_time
             assert speedup >= 2, (
-                f"Cache speedup was only {speedup:.1f}x (cold={cold_time:.1f}ms, warm={warm_time:.1f}ms)"
+                f"Cache speedup was only {speedup:.1f}x "
+                f"(cold={cold_time:.1f}ms, warm={warm_time:.1f}ms)"
             )
 
 
@@ -162,7 +164,8 @@ class TestCodeAnalysisPerformance:
         raw_tokens = _estimate_tokens(raw_ast)
 
         assert structured_tokens < raw_tokens, (
-            f"Structured ({structured_tokens} tokens) should be smaller than AST dump ({raw_tokens} tokens)"
+            f"Structured ({structured_tokens} tokens) should be smaller "
+            f"than AST dump ({raw_tokens} tokens)"
         )
 
 
@@ -243,8 +246,8 @@ class TestTokenSavings:
         pydoc.doc(json.dumps, output=buf)
         raw_tokens = _estimate_tokens(buf.getvalue())
 
-        savings_pct = (raw_tokens - skill_tokens) / raw_tokens * 100 if raw_tokens > 0 else 0
-        # For small functions, JSON overhead makes structured docs take MORE tokens or very few savings. Just ensure it runs.
+        # For small functions, JSON overhead makes structured docs take MORE tokens or very few
+        # savings. Just ensure it runs.
         assert skill_tokens > 0 and raw_tokens > 0
 
     def test_code_analysis_saves_tokens(self):
@@ -257,8 +260,8 @@ class TestTokenSavings:
         structured = json.dumps(analyze_source(source), indent=2, default=str)
         skill_tokens = _estimate_tokens(structured)
 
-        savings_pct = (raw_tokens - skill_tokens) / raw_tokens * 100 if raw_tokens > 0 else 0
-        # For small files, JSON overhead makes analysis take MORE tokens or very few savings. Just ensure it runs.
+        # For small files, JSON overhead makes analysis take MORE tokens or very few savings.
+        # Just ensure it runs.
         assert skill_tokens > 0 and raw_tokens > 0
 
     def test_project_analysis_saves_tokens(self):

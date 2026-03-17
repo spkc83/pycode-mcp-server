@@ -20,6 +20,7 @@ import doctest
 import importlib
 import inspect
 import json
+import pydoc
 import re
 import sys
 from pathlib import Path
@@ -29,14 +30,12 @@ _SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 
+from cache import CacheManager  # noqa: E402
+
 try:
     from typing import get_type_hints
 except ImportError:
     get_type_hints = None
-
-import pydoc
-
-from cache import CacheManager
 
 # Try to import Jedi
 try:
@@ -254,7 +253,8 @@ def extract_raises(docstring: Optional[str]) -> List[Dict[str, str]]:
         section_start = match.end()
         # Find the end of the section (next section header or end of docstring)
         next_section = re.search(
-            r"^\s*(?:Returns|Args|Parameters|Notes|Examples|See Also|References|Attributes|Methods|Yields|Warnings)\s*:?\s*$",
+            r"^\s*(?:Returns|Args|Parameters|Notes|Examples|See Also|"
+            r"References|Attributes|Methods|Yields|Warnings)\s*:?\s*$",
             docstring[section_start:],
             re.MULTILINE,
         )
@@ -629,7 +629,8 @@ def _get_jedi_structured_docs(name: str) -> Optional[Dict[str, Any]]:
         # Class methods (if it's a class)
         if jedi_name.type == "class":
             try:
-                methods_source = f"from {'.'.join(parts[:-1]) if len(parts) > 1 else parts[0]} import {parts[-1]}\n{parts[-1]}."
+                _mod = '.'.join(parts[:-1]) if len(parts) > 1 else parts[0]
+                methods_source = f"from {_mod} import {parts[-1]}\n{parts[-1]}."
                 method_script = jedi.Script(methods_source)
                 completions = method_script.complete(2, len(f"{parts[-1]}."))
 
