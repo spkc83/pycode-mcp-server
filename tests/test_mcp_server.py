@@ -217,3 +217,26 @@ class TestPrepareCodegenContext:
         )
         assert result["compatibility"]["python"]["checked"] is True
         assert result["compatibility"]["python"]["compatible"] is False
+
+    def test_goal_shaping_for_debugging(self):
+        from mcp_server import prepare_codegen_context
+
+        result = json.loads(
+            prepare_codegen_context(
+                object_name="json.dumps",
+                task_goal="debugging",
+                budget="medium",
+            )
+        )
+        assert result["task_goal"] == "debugging"
+        assert "signature" in result["docs"]
+
+    def test_invalid_task_goal_raises(self):
+        from mcp_server import prepare_codegen_context
+
+        try:
+            prepare_codegen_context(object_name="json.dumps", task_goal="invalid_goal")
+            raised = False
+        except ValueError:
+            raised = True
+        assert raised is True

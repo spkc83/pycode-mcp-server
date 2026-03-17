@@ -267,6 +267,7 @@ def prepare_codegen_context(
     min_python: Optional[str] = None,
     package_version_spec: Optional[str] = None,
     budget: str = "medium",
+    task_goal: str = "implementation",
 ) -> str:
     """Build version-aware local context for agent code generation."""
     from codegen_context import prepare_codegen_context as _prepare_codegen_context
@@ -279,6 +280,7 @@ def prepare_codegen_context(
         min_python=min_python,
         package_version_spec=package_version_spec,
         budget=budget,
+        task_goal=task_goal,
     )
     return json.dumps(result, indent=2, default=str)
 
