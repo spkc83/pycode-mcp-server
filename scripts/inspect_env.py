@@ -17,7 +17,28 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+_SCRIPTS_DIR = Path(__file__).resolve().parent
+if str(_SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS_DIR))
+
 from importlib.metadata import distributions, PackageNotFoundError
+
+# Cache distributions() result to avoid redundant iterations
+_cached_distributions = None
+
+
+def _get_distributions():
+    """Get cached list of distributions."""
+    global _cached_distributions
+    if _cached_distributions is None:
+        _cached_distributions = list(distributions())
+    return _cached_distributions
+
+
+def _clear_distributions_cache():
+    """Clear the distributions cache."""
+    global _cached_distributions
+    _cached_distributions = None
 
 
 def get_import_names(dist) -> List[str]:
@@ -26,7 +47,7 @@ def get_import_names(dist) -> List[str]:
         top_level = dist.read_text('top_level.txt')
         if top_level:
             return [name.strip() for name in top_level.strip().split('\n') if name.strip()]
-    except FileNotFoundError:
+    except (FileNotFoundError, TypeError, KeyError):
         pass
     
     try:
@@ -112,14 +133,14 @@ def list_installed_packages() -> List[Tuple[str, str]]:
     """
     return sorted(
         (d.metadata["Name"], d.version)
-        for d in distributions()
+        for d in _get_distributions()
         if d.metadata["Name"] is not None
     )
 
 
 def get_package_details(package_name: str) -> Optional[Dict[str, Any]]:
     """Get detailed information about a specific package."""
-    for dist in distributions():
+    for dist in _get_distributions():
         if dist.metadata["Name"] and dist.metadata["Name"].lower() == package_name.lower():
             import_names = get_import_names(dist)
             
@@ -179,7 +200,7 @@ def get_full_environment() -> Dict[str, Any]:
         "package_count": 0,
     }
     
-    for dist in distributions():
+    for dist in _get_distributions():
         name = dist.metadata.get("Name")
         if not name:
             continue
@@ -202,7 +223,7 @@ def get_full_environment() -> Dict[str, Any]:
 
 def is_package_installed(package_name: str) -> bool:
     """Check if a package is installed."""
-    for dist in distributions():
+    for dist in _get_distributions():
         if dist.metadata["Name"] and dist.metadata["Name"].lower() == package_name.lower():
             return True
     return False
@@ -210,7 +231,7 @@ def is_package_installed(package_name: str) -> bool:
 
 def find_package_by_import(import_name: str) -> Optional[str]:
     """Find which package provides a given import name."""
-    for dist in distributions():
+    for dist in _get_distributions():
         import_names = get_import_names(dist)
         if import_name in import_names or import_name.lower() in [n.lower() for n in import_names]:
             return dist.metadata.get("Name")

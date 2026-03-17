@@ -39,6 +39,12 @@ htmlcov/
 references/local_docs_index.json
 references/skill_usage.log
 
+# Benchmark and evaluation outputs
+references/benchmark_results.json
+references/eval_results/
+references/eval_report.md
+task_outputs/
+
 # PyInstaller
 *.manifest
 *.spec

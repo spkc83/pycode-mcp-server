@@ -10,13 +10,18 @@ from __future__ import annotations
 import hashlib
 import json
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+_SCRIPTS_DIR = Path(__file__).resolve().parent
+if str(_SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS_DIR))
+
 CACHE_FILE = Path(__file__).parent.parent / "references" / "local_docs_index.json"
-CACHE_VERSION = "2"
+CACHE_VERSION = "3"
 MAX_DOCSTRING_ENTRIES = 500
+DEFAULT_TTL_HOURS = 168  # 7 days
 
 
 def _now_iso() -> str:
@@ -133,6 +138,19 @@ class CacheManager:
             return None
         
         entry["hit_count"] = entry.get("hit_count", 0) + 1
+        
+        # Check TTL
+        cached_at = entry.get("cached_at")
+        if cached_at:
+            try:
+                cached_time = datetime.fromisoformat(cached_at)
+                if datetime.now(timezone.utc) - cached_time > timedelta(hours=DEFAULT_TTL_HOURS):
+                    del cache["docs"][name]
+                    cache["stats"]["cache_misses"] += 1
+                    return None
+            except (ValueError, TypeError):
+                pass
+        
         cache["stats"]["cache_hits"] += 1
         return entry.get("content")
 
@@ -192,9 +210,7 @@ class CacheManager:
         cache["stats"]["evictions"] += len(to_remove)
         return len(to_remove)
 
-    def _evict_lru(self, count: int = 50) -> int:
-        """Alias for _evict_lfu for backwards compatibility."""
-        return self._evict_lfu(count)
+
 
     def clear(self) -> None:
         self._data = self._empty_cache()

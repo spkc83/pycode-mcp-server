@@ -263,7 +263,7 @@ class TestCache:
 
     def test_empty_cache_initialization(self, cache_manager):
         data = cache_manager.load()
-        assert data["version"] == "2"
+        assert data["version"] == "3"
         assert "docs" in data
         assert "packages" in data
         assert "stats" in data
@@ -346,7 +346,7 @@ class TestCache:
         for _ in range(5):
             cm.get_docstring("high_use")
         
-        evicted = cm._evict_lru(count=1)
+        evicted = cm._evict_lfu(count=1)
         
         assert evicted == 1
         assert cm.get_docstring("high_use") is not None
@@ -379,7 +379,7 @@ class TestCache:
         cm = cache_module.CacheManager(cache_file)
         data = cm.load()
         
-        assert data["version"] == "2"
+        assert data["version"] == "3"
         assert data["docs"] == {}
 
     def test_version_migration(self, cache_module, tmp_path):
@@ -393,7 +393,7 @@ class TestCache:
         cm = cache_module.CacheManager(cache_file)
         data = cm.load()
         
-        assert data["version"] == "2"
+        assert data["version"] == "3"
         assert "old" not in data.get("docs", {})
 
     def test_docstring_invalidation_on_package_version_change(self, cache_module, tmp_path):
@@ -535,3 +535,87 @@ def func(x: int, y: str = "default") -> List[str]:
         assert isinstance(result, dict)
         assert "functions" in result
         assert result["functions"][0]["name"] == "func"
+
+
+# TestHealthCheck and TestDebugWrapper removed — those scripts were
+# deprecated in v4.0.0 (MCP Server migration).
+
+
+class TestStdlibDetection:
+    """Test that code_analyzer properly detects stdlib vs third-party modules."""
+
+    @pytest.fixture
+    def module(self):
+        return load_module_from_path("code_analyzer", SCRIPTS_DIR / "code_analyzer.py")
+
+    def test_common_stdlib_not_third_party(self, module):
+        """Stdlib modules should NOT appear in third_party_dependencies."""
+        source = "import textwrap\nimport struct\nimport decimal\nimport traceback\nimport warnings\nimport signal\n"
+        result = module.analyze_source(source)
+        third_party = result.get("third_party_dependencies", [])
+        for mod in ["textwrap", "struct", "decimal", "traceback", "warnings", "signal"]:
+            assert mod not in third_party, f"{mod} should not be third-party"
+
+    def test_zipfile_tarfile_not_third_party(self, module):
+        source = "import zipfile\nimport tarfile\nimport gzip\nimport bz2\nimport lzma\n"
+        result = module.analyze_source(source)
+        third_party = result.get("third_party_dependencies", [])
+        for mod in ["zipfile", "tarfile", "gzip", "bz2", "lzma"]:
+            assert mod not in third_party, f"{mod} should not be third-party"
+
+    def test_math_and_stats_not_third_party(self, module):
+        source = "import decimal\nimport fractions\nimport statistics\nimport string\n"
+        result = module.analyze_source(source)
+        third_party = result.get("third_party_dependencies", [])
+        for mod in ["decimal", "fractions", "statistics", "string"]:
+            assert mod not in third_party, f"{mod} should not be third-party"
+
+    def test_actual_third_party_detected(self, module):
+        source = "import pandas\nimport numpy\nimport flask\n"
+        result = module.analyze_source(source)
+        third_party = result.get("third_party_dependencies", [])
+        for mod in ["pandas", "numpy", "flask"]:
+            assert mod in third_party, f"{mod} should be detected as third-party"
+
+
+class TestExtractRaises:
+    """Test extract_raises with different docstring formats."""
+
+    @pytest.fixture
+    def module(self):
+        return load_module_from_path("doc_lookup", SCRIPTS_DIR / "doc_lookup.py")
+
+    def test_sphinx_style(self, module):
+        docstring = """Do something.
+
+        :raises ValueError: If value is invalid.
+        :raises TypeError: If type is wrong.
+        """
+        raises = module.extract_raises(docstring)
+        assert len(raises) >= 2
+        exc_names = [r["exception"] for r in raises]
+        assert "ValueError" in exc_names
+        assert "TypeError" in exc_names
+
+    def test_google_style(self, module):
+        docstring = """Do something.
+
+        Raises:
+            ValueError: If value is invalid.
+            TypeError: If type is wrong.
+        """
+        raises = module.extract_raises(docstring)
+        assert len(raises) >= 2
+        exc_names = [r["exception"] for r in raises]
+        assert "ValueError" in exc_names
+        assert "TypeError" in exc_names
+
+    def test_empty_docstring(self, module):
+        assert module.extract_raises("") == []
+        assert module.extract_raises(None) == []
+
+    def test_no_raises_section(self, module):
+        docstring = "Just a simple function.\n\nArgs:\n    x: An integer.\n"
+        raises = module.extract_raises(docstring)
+        assert raises == []
+

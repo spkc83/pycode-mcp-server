@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
+        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
       fail-fast: false
     
     steps:
@@ -28,6 +28,15 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Lint with ruff
+        run: ruff check scripts/ tests/
+
+      - name: Format check with ruff
+        run: ruff format --check scripts/ tests/
+
+      - name: Run health check
+        run: python scripts/health_check.py
+
       - name: Run environment inspection
         run: python scripts/inspect_env.py --no-cache | head -20
 
@@ -39,3 +48,20 @@ jobs:
 
       - name: Test code_analyzer
         run: python scripts/code_analyzer.py scripts/inspect_env.py | head -20
+
+      - name: Test jedi_engine status
+        run: python scripts/jedi_engine.py status
+
+      - name: Test project_analyzer
+        run: python scripts/project_analyzer.py scripts/ | head -30
+
+      - name: Test diagnostics
+        run: python scripts/diagnostics.py scripts/cache.py | head -20
+
+      - name: Run benchmark smoke test
+        run: python scripts/benchmark.py --suite doc_lookup --iterations 3 --format table
+        continue-on-error: true
+
+      - name: Run token estimator
+        run: python scripts/token_estimator.py --compare doc_lookup json.dumps --format json | head -30
+        continue-on-error: true
