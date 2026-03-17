@@ -97,13 +97,21 @@ compatibility checks, and install guidance.
 #   "package_name": "json",
 #   "min_python": "3.10",
 #   "package_version_spec": ">=3.0",
-#   "budget": "short"
+#   "budget": "short",
+#   "task_goal": "implementation"
 # }
 
 # Via CLI fallback
-python scripts/codegen_context.py --object json.dumps --budget short
+python scripts/codegen_context.py --object json.dumps --budget short --task-goal implementation
 python scripts/codegen_context.py --package requests --package-version-spec ">=2.30,<3"
 ```
+
+Supported `task_goal` values:
+- `implementation`
+- `debugging`
+- `refactor`
+- `testing`
+- `research`
 
 ## Connecting via MCP
 
@@ -127,3 +135,4 @@ If your AI agent supports the Model Context Protocol:
 3. **Use install instructions** — when a package is needed, use `get_install_instructions` to give the user the correct command for their package manager.
 4. **Analyze before modifying** — use `analyze_file` on existing code before suggesting changes to understand its structure.
 5. **Use budgeted context generation** — call `prepare_codegen_context` first for token-efficient, compatibility-aware coding output.
+6. **Choose a task goal explicitly** — set `task_goal` so returned fields match the coding intent and reduce unnecessary tokens.

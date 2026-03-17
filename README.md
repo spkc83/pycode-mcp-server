@@ -126,7 +126,8 @@ Args example:
   "package_name": "pandas",
   "package_version_spec": ">=2.0,<3",
   "min_python": "3.10",
-  "budget": "short"
+  "budget": "short",
+  "task_goal": "implementation"
 }
 ```
 
@@ -136,12 +137,78 @@ Args example:
 - `medium`: balanced details for coding workflows (default)
 - `full`: complete payload including expanded docs/metadata
 
+### Task Goals
+
+- `implementation`: prioritize signatures + parameters + examples
+- `debugging`: prioritize raises/source/related metadata
+- `refactor`: emphasize methods/attributes/related symbols
+- `testing`: emphasize returns/raises/examples for assertions
+- `research`: broad summary for exploration
+
 The response includes:
 
 - `docs`: local signatures/parameters/examples from runtime-installed libraries
 - `compatibility`: Python/package constraint checks and warnings
 - `install`: package-manager-aware install command when package is missing
 - `agent_contract`: guardrails for version-compatible code generation
+
+## Benchmarking & Validation Playbook
+
+Use this workflow to validate token savings and compatibility quality before adoption.
+
+### 1) Generate baseline token report
+
+```bash
+python scripts/token_estimator.py --format markdown --output references/benchmark_baseline.md
+python scripts/token_estimator.py --format json --output references/benchmark_baseline.json
+```
+
+### 2) Compare budget/task_goal payload sizes
+
+```bash
+python scripts/codegen_context.py --object json.dumps --budget short --task-goal implementation > /tmp/ctx_short.json
+python scripts/codegen_context.py --object json.dumps --budget medium --task-goal implementation > /tmp/ctx_medium.json
+python scripts/codegen_context.py --object json.dumps --budget full --task-goal implementation > /tmp/ctx_full.json
+
+python scripts/token_estimator.py --estimate-file /tmp/ctx_short.json
+python scripts/token_estimator.py --estimate-file /tmp/ctx_medium.json
+python scripts/token_estimator.py --estimate-file /tmp/ctx_full.json
+```
+
+Expected: `short < medium < full` token counts.
+
+### 3) Validate compatibility warnings
+
+```bash
+# Missing package warning + install command
+python scripts/codegen_context.py --package some_unlikely_package_xyz --budget medium
+
+# Python version incompatibility warning
+python scripts/codegen_context.py --object json.dumps --min-python 99.0 --budget medium
+
+# Package version constraint check
+python scripts/codegen_context.py --package pytest --package-version-spec ">=1.0,<999.0" --budget medium
+```
+
+Expected: `compatibility.is_compatible` flips to `false` on deliberate incompatibility inputs.
+
+### 4) Validate goal-specific shaping
+
+```bash
+python scripts/codegen_context.py --object json.dumps --task-goal debugging --budget short
+python scripts/codegen_context.py --object json.dumps --task-goal testing --budget short
+python scripts/codegen_context.py --object json.dumps --task-goal refactor --budget short
+```
+
+Expected: returned `docs` fields differ by `task_goal` and stay minimal under `short` budget.
+
+### 5) Regression safety checks
+
+```bash
+ruff check scripts/ tests/ mcp_server.py
+ruff format --check scripts/ tests/ mcp_server.py
+pytest -q
+```
 
 ## License
 
