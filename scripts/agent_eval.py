@@ -21,11 +21,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List
 
+from token_estimator import estimate_tokens
+
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
-
-from token_estimator import estimate_tokens
 
 # ---------------------------------------------------------------------------
 # Data structures

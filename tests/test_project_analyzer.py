@@ -6,10 +6,6 @@ import tempfile
 from pathlib import Path
 
 # Add scripts directory to path
-SCRIPTS_DIR = Path(__file__).resolve().parent.parent / "scripts"
-if str(SCRIPTS_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPTS_DIR))
-
 from project_analyzer import (
     STDLIB_MODULES,
     analyze_project,
@@ -18,6 +14,10 @@ from project_analyzer import (
     detect_circular_dependencies,
     discover_python_files,
 )
+
+SCRIPTS_DIR = Path(__file__).resolve().parent.parent / "scripts"
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
 
 
 class TestFileDiscovery:

@@ -19,11 +19,11 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
+from code_analyzer import analyze_source
+
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
-
-from code_analyzer import analyze_source
 
 
 def _get_stdlib_modules() -> Set[str]:

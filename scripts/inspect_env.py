@@ -17,11 +17,11 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+from importlib.metadata import distributions
+
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
-
-from importlib.metadata import distributions
 
 # Cache distributions() result to avoid redundant iterations
 _cached_distributions = None

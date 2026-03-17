@@ -7,10 +7,6 @@ from pathlib import Path
 import pytest
 
 # Add scripts directory to path
-SCRIPTS_DIR = Path(__file__).resolve().parent.parent / "scripts"
-if str(SCRIPTS_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPTS_DIR))
-
 from jedi_engine import (
     JEDI_AVAILABLE,
     extract_function,
@@ -26,6 +22,10 @@ from jedi_engine import (
     rename_symbol,
     search_project,
 )
+
+SCRIPTS_DIR = Path(__file__).resolve().parent.parent / "scripts"
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
 
 
 class TestJediAvailability:
