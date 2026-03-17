@@ -6,16 +6,16 @@ import tempfile
 from pathlib import Path
 
 # Add scripts directory to path
-SCRIPTS_DIR = Path(__file__).resolve().parent.parent / "scripts"
-if str(SCRIPTS_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPTS_DIR))
-
 from diagnostics import (
     _build_result,
     get_jedi_diagnostics,
     get_pyflakes_diagnostics,
     run_diagnostics,
 )
+
+SCRIPTS_DIR = Path(__file__).resolve().parent.parent / "scripts"
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
 
 
 class TestJediDiagnostics:

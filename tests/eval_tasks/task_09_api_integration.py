@@ -30,7 +30,8 @@ class TestTask09ApiIntegration:
                 sys.executable,
                 "-c",
                 "import importlib.util; "
-                f"spec = importlib.util.spec_from_file_location('cs', '{SCRIPTS_DIR / 'code_search.py'}'); "
+                f"spec = importlib.util.spec_from_file_location("
+                f"'cs', '{SCRIPTS_DIR / 'code_search.py'}'); "
                 f"mod = importlib.util.module_from_spec(spec); "
                 f"spec.loader.exec_module(mod)",
             ],

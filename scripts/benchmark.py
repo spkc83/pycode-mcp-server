@@ -158,7 +158,6 @@ def _suite_doc_lookup(iterations: int) -> SuiteResult:
     from io import StringIO
 
     results: List[BenchmarkResult] = []
-    test_names = ["json.dumps", "os.path.join", "str.split"]
 
     # --- Jedi structured lookup ---
     try:
