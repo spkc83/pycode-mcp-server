@@ -17,7 +17,7 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(_SCRIPTS_DIR) not in sys.path:
@@ -25,6 +25,7 @@ if str(_SCRIPTS_DIR) not in sys.path:
 
 try:
     import jedi
+
     JEDI_AVAILABLE = True
     JEDI_VERSION = jedi.__version__
 except ImportError:
@@ -37,8 +38,9 @@ def jedi_available() -> bool:
     return JEDI_AVAILABLE
 
 
-def _make_script(source: Optional[str] = None, path: Optional[str] = None,
-                 project_path: Optional[str] = None) -> "jedi.Script":
+def _make_script(
+    source: Optional[str] = None, path: Optional[str] = None, project_path: Optional[str] = None
+) -> "jedi.Script":
     """Create a Jedi Script object from source or file path."""
     if not JEDI_AVAILABLE:
         raise RuntimeError("Jedi is not installed. Install with: pip install jedi>=0.19.0")
@@ -93,9 +95,13 @@ def _name_to_dict(name: Any) -> Dict[str, Any]:
     return result
 
 
-def get_completions(source: Optional[str] = None, line: int = 1, col: int = 0,
-                    path: Optional[str] = None,
-                    project_path: Optional[str] = None) -> List[Dict[str, Any]]:
+def get_completions(
+    source: Optional[str] = None,
+    line: int = 1,
+    col: int = 0,
+    path: Optional[str] = None,
+    project_path: Optional[str] = None,
+) -> List[Dict[str, Any]]:
     """Get autocompletion suggestions at a given position.
 
     Args:
@@ -119,9 +125,13 @@ def get_completions(source: Optional[str] = None, line: int = 1, col: int = 0,
         return [{"error": str(e)}]
 
 
-def get_definitions(source: Optional[str] = None, line: int = 1, col: int = 0,
-                    path: Optional[str] = None,
-                    project_path: Optional[str] = None) -> List[Dict[str, Any]]:
+def get_definitions(
+    source: Optional[str] = None,
+    line: int = 1,
+    col: int = 0,
+    path: Optional[str] = None,
+    project_path: Optional[str] = None,
+) -> List[Dict[str, Any]]:
     """Get definitions / type inference for the object at a given position.
 
     Uses Script.infer() to follow imports and resolve the ultimate definition.
@@ -147,9 +157,13 @@ def get_definitions(source: Optional[str] = None, line: int = 1, col: int = 0,
         return [{"error": str(e)}]
 
 
-def get_references(source: Optional[str] = None, line: int = 1, col: int = 0,
-                   path: Optional[str] = None,
-                   project_path: Optional[str] = None) -> List[Dict[str, Any]]:
+def get_references(
+    source: Optional[str] = None,
+    line: int = 1,
+    col: int = 0,
+    path: Optional[str] = None,
+    project_path: Optional[str] = None,
+) -> List[Dict[str, Any]]:
     """Find all references to the object at a given position.
 
     Args:
@@ -173,9 +187,13 @@ def get_references(source: Optional[str] = None, line: int = 1, col: int = 0,
         return [{"error": str(e)}]
 
 
-def get_signatures(source: Optional[str] = None, line: int = 1, col: int = 0,
-                   path: Optional[str] = None,
-                   project_path: Optional[str] = None) -> List[Dict[str, Any]]:
+def get_signatures(
+    source: Optional[str] = None,
+    line: int = 1,
+    col: int = 0,
+    path: Optional[str] = None,
+    project_path: Optional[str] = None,
+) -> List[Dict[str, Any]]:
     """Get function signature help at a given position.
 
     Args:
@@ -242,9 +260,14 @@ def search_project(query: str, project_path: str) -> List[Dict[str, Any]]:
         return [{"error": str(e)}]
 
 
-def rename_symbol(source: Optional[str] = None, line: int = 1, col: int = 0,
-                  new_name: str = "", path: Optional[str] = None,
-                  project_path: Optional[str] = None) -> Dict[str, Any]:
+def rename_symbol(
+    source: Optional[str] = None,
+    line: int = 1,
+    col: int = 0,
+    new_name: str = "",
+    path: Optional[str] = None,
+    project_path: Optional[str] = None,
+) -> Dict[str, Any]:
     """Rename a symbol and return the refactoring changes.
 
     Args:
@@ -282,10 +305,15 @@ def rename_symbol(source: Optional[str] = None, line: int = 1, col: int = 0,
         return {"error": str(e)}
 
 
-def extract_variable(source: str, line: int, col: int,
-                     end_line: int, end_col: int,
-                     new_name: str = "extracted_var",
-                     path: Optional[str] = None) -> Dict[str, Any]:
+def extract_variable(
+    source: str,
+    line: int,
+    col: int,
+    end_line: int,
+    end_col: int,
+    new_name: str = "extracted_var",
+    path: Optional[str] = None,
+) -> Dict[str, Any]:
     """Extract an expression into a variable.
 
     Args:
@@ -311,19 +339,22 @@ def extract_variable(source: str, line: int, col: int,
         return {
             "success": True,
             "new_name": new_name,
-            "new_code": refactoring.get_changed_files().get(
-                Path(path) if path else None, source
-            ),
+            "new_code": refactoring.get_changed_files().get(Path(path) if path else None, source),
             "diff": refactoring.get_diff(),
         }
     except Exception as e:
         return {"error": str(e)}
 
 
-def extract_function(source: str, line: int, col: int,
-                     end_line: int, end_col: int,
-                     new_name: str = "extracted_func",
-                     path: Optional[str] = None) -> Dict[str, Any]:
+def extract_function(
+    source: str,
+    line: int,
+    col: int,
+    end_line: int,
+    end_col: int,
+    new_name: str = "extracted_func",
+    path: Optional[str] = None,
+) -> Dict[str, Any]:
     """Extract code into a new function.
 
     Args:
@@ -349,17 +380,16 @@ def extract_function(source: str, line: int, col: int,
         return {
             "success": True,
             "new_name": new_name,
-            "new_code": refactoring.get_changed_files().get(
-                Path(path) if path else None, source
-            ),
+            "new_code": refactoring.get_changed_files().get(Path(path) if path else None, source),
             "diff": refactoring.get_diff(),
         }
     except Exception as e:
         return {"error": str(e)}
 
 
-def inline_variable(source: Optional[str] = None, line: int = 1, col: int = 0,
-                    path: Optional[str] = None) -> Dict[str, Any]:
+def inline_variable(
+    source: Optional[str] = None, line: int = 1, col: int = 0, path: Optional[str] = None
+) -> Dict[str, Any]:
     """Inline a variable (replace all usages with its value).
 
     Args:
@@ -385,8 +415,9 @@ def inline_variable(source: Optional[str] = None, line: int = 1, col: int = 0,
         return {"error": str(e)}
 
 
-def get_diagnostics(source: Optional[str] = None,
-                    path: Optional[str] = None) -> List[Dict[str, Any]]:
+def get_diagnostics(
+    source: Optional[str] = None, path: Optional[str] = None
+) -> List[Dict[str, Any]]:
     """Get syntax error diagnostics for a file.
 
     Args:
@@ -404,23 +435,29 @@ def get_diagnostics(source: Optional[str] = None,
         errors = script.get_syntax_errors()
         diagnostics = []
         for error in errors:
-            diagnostics.append({
-                "line": error.line,
-                "column": error.column,
-                "end_line": error.until_line,
-                "end_column": error.until_column,
-                "severity": "error",
-                "source": "jedi",
-                "message": error.get_message(),
-            })
+            diagnostics.append(
+                {
+                    "line": error.line,
+                    "column": error.column,
+                    "end_line": error.until_line,
+                    "end_column": error.until_column,
+                    "severity": "error",
+                    "source": "jedi",
+                    "message": error.get_message(),
+                }
+            )
         return diagnostics
     except Exception as e:
         return [{"error": str(e)}]
 
 
-def get_goto(source: Optional[str] = None, line: int = 1, col: int = 0,
-             path: Optional[str] = None,
-             project_path: Optional[str] = None) -> List[Dict[str, Any]]:
+def get_goto(
+    source: Optional[str] = None,
+    line: int = 1,
+    col: int = 0,
+    path: Optional[str] = None,
+    project_path: Optional[str] = None,
+) -> List[Dict[str, Any]]:
     """Go to the definition of the object at a given position.
 
     Unlike get_definitions (infer), this returns the initial definition
@@ -447,8 +484,9 @@ def get_goto(source: Optional[str] = None, line: int = 1, col: int = 0,
         return [{"error": str(e)}]
 
 
-def get_hover_info(source: Optional[str] = None, line: int = 1, col: int = 0,
-                   path: Optional[str] = None) -> Dict[str, Any]:
+def get_hover_info(
+    source: Optional[str] = None, line: int = 1, col: int = 0, path: Optional[str] = None
+) -> Dict[str, Any]:
     """Get hover information (type + docstring) for an object at a position.
 
     Args:
@@ -500,9 +538,7 @@ def get_hover_info(source: Optional[str] = None, line: int = 1, col: int = 0,
 def main() -> None:
     import argparse
 
-    parser = argparse.ArgumentParser(
-        description="Jedi-powered code intelligence engine"
-    )
+    parser = argparse.ArgumentParser(description="Jedi-powered code intelligence engine")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     # Common args helper
@@ -556,10 +592,15 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.command == "status":
-        print(json.dumps({
-            "jedi_available": JEDI_AVAILABLE,
-            "jedi_version": JEDI_VERSION,
-        }, indent=2))
+        print(
+            json.dumps(
+                {
+                    "jedi_available": JEDI_AVAILABLE,
+                    "jedi_version": JEDI_VERSION,
+                },
+                indent=2,
+            )
+        )
         return
 
     if args.command == "search":
@@ -587,26 +628,34 @@ def main() -> None:
     project = getattr(args, "project", None)
 
     if args.command == "completions":
-        result = get_completions(source=source, line=line, col=col,
-                                 path=file_path, project_path=project)
+        result = get_completions(
+            source=source, line=line, col=col, path=file_path, project_path=project
+        )
     elif args.command == "definitions":
-        result = get_definitions(source=source, line=line, col=col,
-                                 path=file_path, project_path=project)
+        result = get_definitions(
+            source=source, line=line, col=col, path=file_path, project_path=project
+        )
     elif args.command == "references":
-        result = get_references(source=source, line=line, col=col,
-                                path=file_path, project_path=project)
+        result = get_references(
+            source=source, line=line, col=col, path=file_path, project_path=project
+        )
     elif args.command == "goto":
-        result = get_goto(source=source, line=line, col=col,
-                          path=file_path, project_path=project)
+        result = get_goto(source=source, line=line, col=col, path=file_path, project_path=project)
     elif args.command == "hover":
         result = get_hover_info(source=source, line=line, col=col, path=file_path)
     elif args.command == "signatures":
-        result = get_signatures(source=source, line=line, col=col,
-                                path=file_path, project_path=project)
+        result = get_signatures(
+            source=source, line=line, col=col, path=file_path, project_path=project
+        )
     elif args.command == "rename":
-        result = rename_symbol(source=source, line=line, col=col,
-                               new_name=args.new_name, path=file_path,
-                               project_path=project)
+        result = rename_symbol(
+            source=source,
+            line=line,
+            col=col,
+            new_name=args.new_name,
+            path=file_path,
+            project_path=project,
+        )
     else:
         result = {"error": f"Unknown command: {args.command}"}
 

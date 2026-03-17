@@ -18,10 +18,10 @@ import json
 import pydoc
 import subprocess
 import sys
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 from io import StringIO
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(_SCRIPTS_DIR) not in sys.path:
@@ -137,9 +137,7 @@ class TokenComparison:
         self.tokens_saved = self.best_without_tokens - self.best_with_tokens
         if self.best_without_tokens > 0:
             self.savings_pct = self.tokens_saved / self.best_without_tokens * 100
-        self.cost_saved_per_1k = estimate_cost_usd(
-            self.tokens_saved * 1000, model=model
-        )
+        self.cost_saved_per_1k = estimate_cost_usd(self.tokens_saved * 1000, model=model)
 
 
 # ---------------------------------------------------------------------------
@@ -279,9 +277,7 @@ def _make_estimate(
     )
 
 
-def compare_doc_lookup(
-    name: str = "json.dumps", model: str = DEFAULT_MODEL
-) -> TokenComparison:
+def compare_doc_lookup(name: str = "json.dumps", model: str = DEFAULT_MODEL) -> TokenComparison:
     """Compare doc lookup approaches for a given object."""
     raw_pydoc = _raw_pydoc(name)
     raw_help = _raw_help(name)
@@ -318,7 +314,7 @@ def compare_code_analysis(
     skill_out = _skill_code_analysis(source)
 
     comp = TokenComparison(
-        scenario=f"Code Analysis: {label} ({source.count(chr(10))+1} lines)",
+        scenario=f"Code Analysis: {label} ({source.count(chr(10)) + 1} lines)",
         without_skill=[
             _make_estimate("Read entire file", raw_source, 3, model),
             _make_estimate("ast.dump()", raw_ast, 1, model),
@@ -354,9 +350,7 @@ def compare_project_analysis(
     comp = TokenComparison(
         scenario=f"Project Analysis: {root_path.name}/ ({file_count} files)",
         without_skill=[
-            _make_estimate(
-                f"Read all {file_count} files", combined_source, 2, model
-            ),
+            _make_estimate(f"Read all {file_count} files", combined_source, 2, model),
         ],
         with_skill=[
             _make_estimate("Skill: analyze_project()", skill_out, 5, model),
@@ -384,9 +378,7 @@ def compare_env_inspection(model: str = DEFAULT_MODEL) -> TokenComparison:
     return comp
 
 
-def compare_class_lookup(
-    name: str = "pathlib.Path", model: str = DEFAULT_MODEL
-) -> TokenComparison:
+def compare_class_lookup(name: str = "pathlib.Path", model: str = DEFAULT_MODEL) -> TokenComparison:
     """Compare class documentation lookup."""
     raw_pydoc = _raw_pydoc(name)
     raw_help = _raw_help(name)
@@ -453,7 +445,9 @@ def format_markdown(comparisons: List[TokenComparison]) -> str:
                 f"**${est.cost_usd:.6f}** | **{_stars(est.info_quality)}** |"
             )
         lines.append("")
-        lines.append(f"→ **Token savings: {comp.savings_pct:.1f}%** ({comp.tokens_saved:,} tokens saved)")
+        lines.append(
+            f"→ **Token savings: {comp.savings_pct:.1f}%** ({comp.tokens_saved:,} tokens saved)"
+        )
         lines.append(f"→ Cost savings at 1,000 calls: ${comp.cost_saved_per_1k:.4f}")
 
     # Aggregate summary
@@ -474,10 +468,7 @@ def format_markdown(comparisons: List[TokenComparison]) -> str:
         overall_pct = total_saved / total_without * 100
     else:
         overall_pct = 0
-    lines.append(
-        f"| **TOTAL** | **{total_saved:,}** | "
-        f"**{overall_pct:.1f}%** | — |"
-    )
+    lines.append(f"| **TOTAL** | **{total_saved:,}** | **{overall_pct:.1f}%** | — |")
 
     return "\n".join(lines)
 
@@ -486,14 +477,16 @@ def format_json(comparisons: List[TokenComparison]) -> str:
     """Generate JSON report."""
     data = []
     for comp in comparisons:
-        data.append({
-            "scenario": comp.scenario,
-            "without_skill": [asdict(e) for e in comp.without_skill],
-            "with_skill": [asdict(e) for e in comp.with_skill],
-            "savings_pct": round(comp.savings_pct, 1),
-            "tokens_saved": comp.tokens_saved,
-            "cost_saved_per_1k": round(comp.cost_saved_per_1k, 6),
-        })
+        data.append(
+            {
+                "scenario": comp.scenario,
+                "without_skill": [asdict(e) for e in comp.without_skill],
+                "with_skill": [asdict(e) for e in comp.with_skill],
+                "savings_pct": round(comp.savings_pct, 1),
+                "tokens_saved": comp.tokens_saved,
+                "cost_saved_per_1k": round(comp.cost_saved_per_1k, 6),
+            }
+        )
     return json.dumps(data, indent=2)
 
 
@@ -515,11 +508,12 @@ def main() -> None:
         help="Compare a specific scenario (doc_lookup NAME | code_analysis FILE | project_analysis DIR)",
     )
     parser.add_argument("--estimate", type=str, help="Estimate tokens for text")
+    parser.add_argument("--estimate-file", type=str, help="Estimate tokens for a file")
     parser.add_argument(
-        "--estimate-file", type=str, help="Estimate tokens for a file"
-    )
-    parser.add_argument(
-        "--model", type=str, default=DEFAULT_MODEL, help=f"LLM model for cost (default: {DEFAULT_MODEL})"
+        "--model",
+        type=str,
+        default=DEFAULT_MODEL,
+        help=f"LLM model for cost (default: {DEFAULT_MODEL})",
     )
     parser.add_argument(
         "--format",
@@ -542,7 +536,16 @@ def main() -> None:
         text = Path(args.estimate_file).read_text(encoding="utf-8")
         tokens = estimate_tokens(text)
         cost = estimate_cost_usd(tokens, args.model)
-        print(json.dumps({"file": args.estimate_file, "text_length": len(text), "tokens": tokens, "cost_usd": cost}))
+        print(
+            json.dumps(
+                {
+                    "file": args.estimate_file,
+                    "text_length": len(text),
+                    "tokens": tokens,
+                    "cost_usd": cost,
+                }
+            )
+        )
         return
 
     # Specific comparison

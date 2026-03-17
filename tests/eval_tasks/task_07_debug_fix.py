@@ -23,7 +23,6 @@ OUTPUTS_DIR = Path(__file__).resolve().parent.parent.parent / "task_outputs"
 
 
 class TestTask07DebugFix:
-
     def test_all_scripts_import_cleanly(self):
         """Every script in scripts/ should import without NameError."""
         scripts = sorted(SCRIPTS_DIR.glob("*.py"))
@@ -32,16 +31,22 @@ class TestTask07DebugFix:
         errors = []
         for script in scripts:
             result = subprocess.run(
-                [sys.executable, "-c", f"import importlib.util; "
-                 f"spec = importlib.util.spec_from_file_location('mod', '{script}'); "
-                 f"mod = importlib.util.module_from_spec(spec); "
-                 f"spec.loader.exec_module(mod)"],
-                capture_output=True, text=True, timeout=30,
+                [
+                    sys.executable,
+                    "-c",
+                    f"import importlib.util; "
+                    f"spec = importlib.util.spec_from_file_location('mod', '{script}'); "
+                    f"mod = importlib.util.module_from_spec(spec); "
+                    f"spec.loader.exec_module(mod)",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=30,
             )
             if result.returncode != 0 and "NameError" in result.stderr:
                 errors.append(f"{script.name}: {result.stderr.strip()}")
 
-        assert not errors, f"Import errors found:\n" + "\n".join(errors)
+        assert not errors, "Import errors found:\n" + "\n".join(errors)
 
     def test_output_file_exists(self):
         """Agent should have created an output file listing fixed files."""

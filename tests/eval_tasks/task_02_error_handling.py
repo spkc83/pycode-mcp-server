@@ -30,41 +30,47 @@ def _skip_if_no_output():
 
 
 class TestTask02ErrorHandling:
-
     def test_function_exists(self):
         from task_02_output import safe_json_parse
+
         assert callable(safe_json_parse)
 
     def test_valid_json(self):
         from task_02_output import safe_json_parse
+
         data, err = safe_json_parse('{"key": "value"}')
         assert data == {"key": "value"}
         assert err is None
 
     def test_invalid_json(self):
         from task_02_output import safe_json_parse
+
         data, err = safe_json_parse("not json")
         assert data is None
         assert err is not None
 
     def test_wrong_type(self):
         from task_02_output import safe_json_parse
+
         data, err = safe_json_parse(12345)  # type: ignore
         assert data is None
         assert err is not None
 
     def test_empty_string(self):
         from task_02_output import safe_json_parse
+
         data, err = safe_json_parse("")
         assert data is None
         assert err is not None
 
     def test_returns_tuple(self):
         from task_02_output import safe_json_parse
+
         result = safe_json_parse('{"a": 1}')
         assert isinstance(result, tuple)
         assert len(result) == 2
 
     def test_has_docstring(self):
         from task_02_output import safe_json_parse
+
         assert safe_json_parse.__doc__ is not None

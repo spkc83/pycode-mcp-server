@@ -9,8 +9,6 @@ import json
 import sys
 from pathlib import Path
 
-import pytest
-
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS_DIR = ROOT / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
@@ -158,8 +156,6 @@ class TestGetInstallInstructions:
         pyproject = tmp_path / "pyproject.toml"
         pyproject.write_text("[tool.poetry]\nname = 'test'\n")
 
-        result = json.loads(
-            get_install_instructions("requests", project_path=str(tmp_path))
-        )
+        result = json.loads(get_install_instructions("requests", project_path=str(tmp_path)))
         assert result["detected_package_manager"] == "poetry"
         assert "poetry add" in result["install_command"]

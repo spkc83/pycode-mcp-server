@@ -12,20 +12,19 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 from jedi_engine import (
-    jedi_available,
+    JEDI_AVAILABLE,
+    extract_function,
+    extract_variable,
     get_completions,
     get_definitions,
-    get_references,
-    get_signatures,
-    search_project,
-    rename_symbol,
-    extract_variable,
-    extract_function,
-    inline_variable,
     get_diagnostics,
     get_goto,
     get_hover_info,
-    JEDI_AVAILABLE,
+    get_references,
+    get_signatures,
+    jedi_available,
+    rename_symbol,
+    search_project,
 )
 
 
@@ -37,9 +36,10 @@ class TestJediAvailability:
 
     def test_jedi_version(self):
         from jedi_engine import JEDI_VERSION
+
         assert JEDI_VERSION is not None
         # Should be at least 0.19.0
-        major, minor = JEDI_VERSION.split('.')[:2]
+        major, minor = JEDI_VERSION.split(".")[:2]
         assert int(major) >= 0
         assert int(minor) >= 19
 
@@ -168,8 +168,7 @@ class TestExtractRefactoring:
     def test_extract_variable(self):
         source = "result = 1 + 2 + 3\n"
         result = extract_variable(
-            source=source, line=1, col=9, end_line=1, end_col=18,
-            new_name="total"
+            source=source, line=1, col=9, end_line=1, end_col=18, new_name="total"
         )
         # extract_variable may or may not succeed depending on Jedi version
         assert isinstance(result, dict)
@@ -177,8 +176,7 @@ class TestExtractRefactoring:
     def test_extract_function(self):
         source = "x = 1\ny = x + 2\nprint(y)\n"
         result = extract_function(
-            source=source, line=2, col=0, end_line=3, end_col=8,
-            new_name="process"
+            source=source, line=2, col=0, end_line=3, end_col=8, new_name="process"
         )
         assert isinstance(result, dict)
 
@@ -242,9 +240,12 @@ class TestCLI:
     def test_status_command(self):
         """Test that the status command produces valid JSON."""
         import subprocess
+
         result = subprocess.run(
             [sys.executable, str(SCRIPTS_DIR / "jedi_engine.py"), "status"],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
         assert result.returncode == 0
         data = json.loads(result.stdout)

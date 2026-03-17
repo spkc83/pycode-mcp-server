@@ -13,7 +13,6 @@ Difficulty: Easy
 """
 
 import json
-import sys
 from pathlib import Path
 
 import pytest
@@ -28,7 +27,6 @@ def _skip_if_no_output():
 
 
 class TestTask04FileAnalysis:
-
     @pytest.fixture
     def answers(self):
         return json.loads((OUTPUTS_DIR / "task_04_output.json").read_text())

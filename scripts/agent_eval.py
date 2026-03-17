@@ -16,16 +16,16 @@ from __future__ import annotations
 
 import json
 import sys
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Dict, List
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 
-from token_estimator import MODEL_PRICING, estimate_tokens
+from token_estimator import estimate_tokens
 
 # ---------------------------------------------------------------------------
 # Data structures
@@ -94,10 +94,10 @@ EVAL_TASKS = {
         "category": "Documentation",
         "difficulty": "Easy",
         "prompt": (
-            'Write a function called `serialize_set` that uses `json.dumps` '
-            'with the `default` parameter to serialize a Python set into a '
-            'JSON array string. The function should have proper type hints '
-            'and a docstring that includes the correct signature of `json.dumps`.'
+            "Write a function called `serialize_set` that uses `json.dumps` "
+            "with the `default` parameter to serialize a Python set into a "
+            "JSON array string. The function should have proper type hints "
+            "and a docstring that includes the correct signature of `json.dumps`."
         ),
         "expected_skill_usage": ["doc_lookup.py"],
         "tests_file": "tests/eval_tasks/task_01_doc_lookup.py",
@@ -107,10 +107,10 @@ EVAL_TASKS = {
         "category": "Documentation",
         "difficulty": "Medium",
         "prompt": (
-            'Write a function called `safe_json_parse` that parses user JSON '
-            'input and handles ALL exceptions that `json.loads` can raise. '
-            'The function should return a tuple of (parsed_data, error_message). '
-            'List each exception type in the docstring.'
+            "Write a function called `safe_json_parse` that parses user JSON "
+            "input and handles ALL exceptions that `json.loads` can raise. "
+            "The function should return a tuple of (parsed_data, error_message). "
+            "List each exception type in the docstring."
         ),
         "expected_skill_usage": ["doc_lookup.py"],
         "tests_file": "tests/eval_tasks/task_02_error_handling.py",
@@ -120,9 +120,9 @@ EVAL_TASKS = {
         "category": "Documentation",
         "difficulty": "Medium",
         "prompt": (
-            'Create a function called `find_python_files` that uses `pathlib.Path` '
-            'to recursively find all `.py` files in a directory, get their sizes, '
-            'and return a dict sorted by size (largest first). Use correct method names.'
+            "Create a function called `find_python_files` that uses `pathlib.Path` "
+            "to recursively find all `.py` files in a directory, get their sizes, "
+            "and return a dict sorted by size (largest first). Use correct method names."
         ),
         "expected_skill_usage": ["doc_lookup.py"],
         "tests_file": "tests/eval_tasks/task_03_class_usage.py",
@@ -132,9 +132,9 @@ EVAL_TASKS = {
         "category": "Understanding",
         "difficulty": "Easy",
         "prompt": (
-            'Read `scripts/cache.py` and answer: What type of eviction does it use? '
-            'What is the max entry count? What is the default TTL? '
-            'Save your answers as a JSON object with keys: eviction_type, max_entries, ttl_hours.'
+            "Read `scripts/cache.py` and answer: What type of eviction does it use? "
+            "What is the max entry count? What is the default TTL? "
+            "Save your answers as a JSON object with keys: eviction_type, max_entries, ttl_hours."
         ),
         "expected_skill_usage": ["code_analyzer.py"],
         "tests_file": "tests/eval_tasks/task_04_file_analysis.py",
@@ -144,9 +144,9 @@ EVAL_TASKS = {
         "category": "Understanding",
         "difficulty": "Hard",
         "prompt": (
-            'Analyze this project and answer: What are the third-party dependencies? '
-            'Which scripts import from other scripts? Are there any circular dependencies? '
-            'Save your answers as JSON with keys: third_party, import_graph, circular_deps.'
+            "Analyze this project and answer: What are the third-party dependencies? "
+            "Which scripts import from other scripts? Are there any circular dependencies? "
+            "Save your answers as JSON with keys: third_party, import_graph, circular_deps."
         ),
         "expected_skill_usage": ["project_analyzer.py"],
         "tests_file": "tests/eval_tasks/task_05_project_deps.py",
@@ -156,9 +156,9 @@ EVAL_TASKS = {
         "category": "Code Generation",
         "difficulty": "Medium",
         "prompt": (
-            'Add a `get_or_set(self, name, factory_fn, package=None)` method to the '
-            'CacheManager class in `scripts/cache.py`. It should return the cached '
-            'value if present, otherwise call factory_fn(), cache the result, and return it.'
+            "Add a `get_or_set(self, name, factory_fn, package=None)` method to the "
+            "CacheManager class in `scripts/cache.py`. It should return the cached "
+            "value if present, otherwise call factory_fn(), cache the result, and return it."
         ),
         "expected_skill_usage": ["code_analyzer.py", "jedi_engine.py"],
         "tests_file": "tests/eval_tasks/task_06_refactor.py",
@@ -168,8 +168,8 @@ EVAL_TASKS = {
         "category": "Code Generation",
         "difficulty": "Easy",
         "prompt": (
-            'Find and fix any import ordering bugs in the scripts/ directory where '
-            'a name is used before it is imported. Report which files had issues.'
+            "Find and fix any import ordering bugs in the scripts/ directory where "
+            "a name is used before it is imported. Report which files had issues."
         ),
         "expected_skill_usage": ["diagnostics.py", "code_analyzer.py"],
         "tests_file": "tests/eval_tasks/task_07_debug_fix.py",
@@ -179,9 +179,9 @@ EVAL_TASKS = {
         "category": "Code Generation",
         "difficulty": "Hard",
         "prompt": (
-            'Write comprehensive tests for `detect_circular_dependencies()` in '
-            '`scripts/project_analyzer.py`. Cover: no cycles, simple A→B→A cycle, '
-            'self-cycle, diamond graph with cycle, and disconnected components.'
+            "Write comprehensive tests for `detect_circular_dependencies()` in "
+            "`scripts/project_analyzer.py`. Cover: no cycles, simple A→B→A cycle, "
+            "self-cycle, diamond graph with cycle, and disconnected components."
         ),
         "expected_skill_usage": ["code_analyzer.py", "doc_lookup.py"],
         "tests_file": "tests/eval_tasks/task_08_test_generation.py",
@@ -191,9 +191,9 @@ EVAL_TASKS = {
         "category": "Cross-Module",
         "difficulty": "Hard",
         "prompt": (
-            'Create `scripts/code_search.py` that combines `jedi_engine.search_project()` '
-            'and `project_analyzer.analyze_project()` to search for a symbol across the '
-            'project and show where it is defined, used, and what modules depend on it.'
+            "Create `scripts/code_search.py` that combines `jedi_engine.search_project()` "
+            "and `project_analyzer.analyze_project()` to search for a symbol across the "
+            "project and show where it is defined, used, and what modules depend on it."
         ),
         "expected_skill_usage": ["jedi_engine.py", "project_analyzer.py"],
         "tests_file": "tests/eval_tasks/task_09_api_integration.py",
@@ -203,9 +203,9 @@ EVAL_TASKS = {
         "category": "Cross-Module",
         "difficulty": "Medium",
         "prompt": (
-            'Add a `--health-detail` flag to `scripts/health_check.py` that also runs '
-            '`diagnostics.py` on each script in `scripts/` and includes diagnostic '
-            'results in the health check output.'
+            "Add a `--health-detail` flag to `scripts/health_check.py` that also runs "
+            "`diagnostics.py` on each script in `scripts/` and includes diagnostic "
+            "results in the health check output."
         ),
         "expected_skill_usage": ["health_check.py", "diagnostics.py"],
         "tests_file": "tests/eval_tasks/task_10_cross_module.py",
@@ -229,7 +229,9 @@ def parse_claude_code_logs(session_path: str) -> AgentRunMetrics:
     path = Path(session_path)
     if not path.exists():
         return AgentRunMetrics(
-            task_id="unknown", agent="claude_code", skill_enabled=False,
+            task_id="unknown",
+            agent="claude_code",
+            skill_enabled=False,
             notes=f"File not found: {session_path}",
         )
 
@@ -312,7 +314,9 @@ def parse_antigravity_logs(conv_id: str) -> AgentRunMetrics:
 
     if not logs_dir.exists():
         return AgentRunMetrics(
-            task_id="unknown", agent="antigravity", skill_enabled=False,
+            task_id="unknown",
+            agent="antigravity",
+            skill_enabled=False,
             notes=f"Logs not found: {logs_dir}",
         )
 
@@ -349,7 +353,9 @@ def parse_generic_logs(log_path: str) -> AgentRunMetrics:
     path = Path(log_path)
     if not path.exists():
         return AgentRunMetrics(
-            task_id="unknown", agent="opencode", skill_enabled=False,
+            task_id="unknown",
+            agent="opencode",
+            skill_enabled=False,
             notes=f"File not found: {log_path}",
         )
 
@@ -500,9 +506,7 @@ def format_report_markdown(comparisons: List[TaskComparison]) -> str:
 
         for c in comps:
             task_name = EVAL_TASKS.get(c.task_id, {}).get("name", c.task_id)
-            acc_str = (
-                f"{c.without_skill.accuracy_pct:.0f}%→{c.with_skill.accuracy_pct:.0f}%"
-            )
+            acc_str = f"{c.without_skill.accuracy_pct:.0f}%→{c.with_skill.accuracy_pct:.0f}%"
             tok_str = f"{c.token_savings_pct:+.0f}%"
             speed_str = f"{c.speed_improvement_pct:+.0f}%"
             tools_str = f"{-c.tool_call_reduction:+d}" if c.tool_call_reduction else "0"
@@ -521,16 +525,16 @@ def format_report_markdown(comparisons: List[TaskComparison]) -> str:
         n = len(comps)
         if n > 0:
             lines.append(
-                f"| **AVERAGE** | **{total_acc/n:+.1f}%** | "
-                f"**{total_tok/n:+.1f}%** | **{total_speed/n:+.1f}%** | "
-                f"**{-total_tools/n:+.1f}** | **{-total_turns/n:+.1f}** |"
+                f"| **AVERAGE** | **{total_acc / n:+.1f}%** | "
+                f"**{total_tok / n:+.1f}%** | **{total_speed / n:+.1f}%** | "
+                f"**{-total_tools / n:+.1f}** | **{-total_turns / n:+.1f}** |"
             )
 
         lines.append("")
         lines.append("### Key Findings")
-        lines.append(f"- Accuracy: {total_acc/n:+.1f}% improvement on average")
-        lines.append(f"- Token efficiency: {total_tok/n:+.1f}% tokens consumed per task")
-        lines.append(f"- Tool calls: {total_tools/n:.1f} fewer tool invocations per task")
+        lines.append(f"- Accuracy: {total_acc / n:+.1f}% improvement on average")
+        lines.append(f"- Token efficiency: {total_tok / n:+.1f}% tokens consumed per task")
+        lines.append(f"- Tool calls: {total_tools / n:.1f} fewer tool invocations per task")
 
     return "\n".join(lines)
 
@@ -539,18 +543,20 @@ def format_report_json(comparisons: List[TaskComparison]) -> str:
     """Generate a JSON comparison report."""
     data = []
     for c in comparisons:
-        data.append({
-            "task_id": c.task_id,
-            "task_name": EVAL_TASKS.get(c.task_id, {}).get("name", c.task_id),
-            "agent": c.with_skill.agent,
-            "accuracy_improvement": c.accuracy_improvement,
-            "token_savings_pct": c.token_savings_pct,
-            "speed_improvement_pct": c.speed_improvement_pct,
-            "tool_call_reduction": c.tool_call_reduction,
-            "turn_reduction": c.turn_reduction,
-            "with_skill": asdict(c.with_skill),
-            "without_skill": asdict(c.without_skill),
-        })
+        data.append(
+            {
+                "task_id": c.task_id,
+                "task_name": EVAL_TASKS.get(c.task_id, {}).get("name", c.task_id),
+                "agent": c.with_skill.agent,
+                "accuracy_improvement": c.accuracy_improvement,
+                "token_savings_pct": c.token_savings_pct,
+                "speed_improvement_pct": c.speed_improvement_pct,
+                "tool_call_reduction": c.tool_call_reduction,
+                "turn_reduction": c.turn_reduction,
+                "with_skill": asdict(c.with_skill),
+                "without_skill": asdict(c.without_skill),
+            }
+        )
     return json.dumps(data, indent=2)
 
 
@@ -621,7 +627,7 @@ def main() -> None:
 
     if args.command == "list-tasks":
         for task_id, info in EVAL_TASKS.items():
-            print(f"\n{'='*60}")
+            print(f"\n{'=' * 60}")
             print(f"  {task_id}: {info['name']}")
             print(f"  Category: {info['category']} | Difficulty: {info['difficulty']}")
             print(f"  Expected skill usage: {', '.join(info['expected_skill_usage'])}")
@@ -629,11 +635,7 @@ def main() -> None:
         return
 
     if args.command == "record":
-        accuracy = (
-            args.tests_passed / args.tests_total * 100
-            if args.tests_total > 0
-            else 0
-        )
+        accuracy = args.tests_passed / args.tests_total * 100 if args.tests_total > 0 else 0
         metrics = AgentRunMetrics(
             task_id=args.task,
             agent=args.agent,

@@ -32,7 +32,6 @@ def _skip_if_no_output():
 
 
 class TestTask08TestGeneration:
-
     def test_output_is_valid_python(self):
         """Generated test file should be valid Python."""
         source = (OUTPUTS_DIR / "task_08_output.py").read_text()
@@ -55,8 +54,11 @@ class TestTask08TestGeneration:
     def test_generated_tests_pass(self):
         """The agent's generated tests should all pass."""
         import subprocess
+
         result = subprocess.run(
             [sys.executable, "-m", "pytest", str(OUTPUTS_DIR / "task_08_output.py"), "-v"],
-            capture_output=True, text=True, timeout=30,
+            capture_output=True,
+            text=True,
+            timeout=30,
         )
         assert result.returncode == 0, f"Generated tests failed:\n{result.stdout}\n{result.stderr}"

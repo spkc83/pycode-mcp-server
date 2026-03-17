@@ -36,29 +36,35 @@ class TestTask01DocLookup:
 
     def test_function_exists(self):
         from task_01_output import serialize_set
+
         assert callable(serialize_set)
 
     def test_serializes_set_of_ints(self):
         from task_01_output import serialize_set
+
         result = json.loads(serialize_set({1, 2, 3}))
         assert sorted(result) == [1, 2, 3]
 
     def test_serializes_set_of_strings(self):
         from task_01_output import serialize_set
+
         result = json.loads(serialize_set({"a", "b"}))
         assert sorted(result) == ["a", "b"]
 
     def test_handles_empty_set(self):
         from task_01_output import serialize_set
+
         result = json.loads(serialize_set(set()))
         assert result == []
 
     def test_returns_string(self):
         from task_01_output import serialize_set
+
         result = serialize_set({1})
         assert isinstance(result, str)
 
     def test_has_docstring(self):
         from task_01_output import serialize_set
+
         assert serialize_set.__doc__ is not None
         assert len(serialize_set.__doc__) > 10
