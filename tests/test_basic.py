@@ -671,3 +671,16 @@ class TestCodegenContext:
             budget="medium",
         )
         assert result["compatibility"]["package_version"]["checked"] is True
+
+    def test_prepare_codegen_context_task_goal_debugging(self, module):
+        result = module.prepare_codegen_context(
+            object_name="json.dumps",
+            task_goal="debugging",
+            budget="short",
+        )
+        assert result["task_goal"] == "debugging"
+        assert "signature" in result["docs"]
+
+    def test_prepare_codegen_context_invalid_task_goal(self, module):
+        with pytest.raises(ValueError):
+            module.prepare_codegen_context(object_name="json.dumps", task_goal="unknown")

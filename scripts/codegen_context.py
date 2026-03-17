@@ -13,6 +13,14 @@ from inspect_env import (
     is_package_installed,
 )
 
+_SUPPORTED_TASK_GOALS = {
+    "implementation",
+    "debugging",
+    "refactor",
+    "testing",
+    "research",
+}
+
 
 def _parse_version(value: str) -> Optional[Tuple[int, ...]]:
     match = re.search(r"\d+(?:\.\d+){0,3}", value)
@@ -181,6 +189,84 @@ def _apply_budget(doc_data: Dict[str, Any], budget: str) -> Dict[str, Any]:
     return base
 
 
+def _apply_goal_focus(payload: Dict[str, Any], task_goal: str, budget: str) -> Dict[str, Any]:
+    focused = dict(payload)
+    docs = focused.get("docs")
+    if not isinstance(docs, dict):
+        focused["task_goal"] = task_goal
+        return focused
+
+    goal = task_goal
+    if goal == "implementation":
+        keep = {
+            "name",
+            "found",
+            "error",
+            "import_statement",
+            "signature",
+            "parameters",
+            "returns",
+            "examples",
+        }
+    elif goal == "debugging":
+        keep = {
+            "name",
+            "found",
+            "error",
+            "signature",
+            "short_description",
+            "raises",
+            "source_file",
+            "related",
+        }
+    elif goal == "refactor":
+        keep = {
+            "name",
+            "found",
+            "error",
+            "signature",
+            "parameters",
+            "returns",
+            "related",
+            "methods",
+            "attributes",
+            "source_file",
+        }
+    elif goal == "testing":
+        keep = {
+            "name",
+            "found",
+            "error",
+            "signature",
+            "parameters",
+            "returns",
+            "raises",
+            "examples",
+        }
+    else:
+        keep = {
+            "name",
+            "found",
+            "error",
+            "object_type",
+            "import_statement",
+            "signature",
+            "short_description",
+            "source_file",
+            "related",
+            "examples",
+        }
+
+    if budget == "short":
+        keep.discard("source_file")
+        keep.discard("methods")
+        keep.discard("attributes")
+
+    focused["docs"] = {key: value for key, value in docs.items() if key in keep}
+    focused["task_goal"] = goal
+    return focused
+
+
 def prepare_codegen_context(
     object_name: Optional[str] = None,
     package_name: Optional[str] = None,
@@ -189,10 +275,16 @@ def prepare_codegen_context(
     min_python: Optional[str] = None,
     package_version_spec: Optional[str] = None,
     budget: str = "medium",
+    task_goal: str = "implementation",
 ) -> Dict[str, Any]:
     budget_mode = budget.lower().strip()
     if budget_mode not in {"short", "medium", "full"}:
         raise ValueError("budget must be one of: short, medium, full")
+
+    task_goal_mode = task_goal.lower().strip()
+    if task_goal_mode not in _SUPPORTED_TASK_GOALS:
+        allowed = ", ".join(sorted(_SUPPORTED_TASK_GOALS))
+        raise ValueError(f"task_goal must be one of: {allowed}")
 
     derived_package = _derive_package_name(object_name)
     target_package = package_name or derived_package
@@ -264,9 +356,22 @@ def prepare_codegen_context(
         compatibility_warnings.extend(python_check.get("details", []))
 
     if docs and docs.get("found"):
-        recommendations.append(
-            "Use the returned signature and parameters exactly when generating code"
-        )
+        if task_goal_mode == "debugging":
+            recommendations.append(
+                "Prioritize raises/source metadata to isolate the failing call path"
+            )
+        elif task_goal_mode == "testing":
+            recommendations.append(
+                "Use parameters, return type, and raises data to derive test assertions"
+            )
+        elif task_goal_mode == "refactor":
+            recommendations.append(
+                "Use related symbols and methods to preserve behavior during refactors"
+            )
+        else:
+            recommendations.append(
+                "Use the returned signature and parameters exactly when generating code"
+            )
     if install:
         recommendations.append(
             f"Ask the user to run '{install['install_command']}' before using {target_package}"
@@ -279,7 +384,7 @@ def prepare_codegen_context(
     if not compatibility_warnings:
         recommendations.append("No compatibility blockers detected for the current request")
 
-    return {
+    result = {
         "request": {
             "object_name": object_name,
             "package_name": package_name,
@@ -288,6 +393,7 @@ def prepare_codegen_context(
             "min_python": min_python,
             "package_version_spec": package_version_spec,
             "budget": budget_mode,
+            "task_goal": task_goal_mode,
         },
         "environment": {
             "python_version": env.get("python_version"),
@@ -316,6 +422,7 @@ def prepare_codegen_context(
         },
         "recommendations": recommendations,
     }
+    return _apply_goal_focus(result, task_goal_mode, budget_mode)
 
 
 def main() -> None:
@@ -344,6 +451,12 @@ def main() -> None:
         choices=["short", "medium", "full"],
         help="Context size mode",
     )
+    parser.add_argument(
+        "--task-goal",
+        default="implementation",
+        choices=sorted(_SUPPORTED_TASK_GOALS),
+        help="Goal-specific context shaping",
+    )
     args = parser.parse_args()
 
     result = prepare_codegen_context(
@@ -354,6 +467,7 @@ def main() -> None:
         min_python=args.min_python,
         package_version_spec=args.package_version_spec,
         budget=args.budget,
+        task_goal=args.task_goal,
     )
     print(json.dumps(result, indent=2, default=str))
 
