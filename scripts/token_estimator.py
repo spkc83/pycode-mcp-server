@@ -427,7 +427,8 @@ def format_markdown(comparisons: List[TokenComparison]) -> str:
     """Generate a markdown report."""
     lines = [
         "# Token Cost Analysis: Python Code Assistant Skill\n",
-        f"_Estimation method: {'tiktoken (exact)' if TIKTOKEN_AVAILABLE else 'approximate (~4 chars/token)'}_\n",
+        f"_Estimation method: "
+        f"{'tiktoken (exact)' if TIKTOKEN_AVAILABLE else 'approximate (~4 chars/token)'}_\n",
     ]
 
     for comp in comparisons:
@@ -505,7 +506,8 @@ def main() -> None:
         "--compare",
         nargs=2,
         metavar=("TYPE", "ARG"),
-        help="Compare a specific scenario (doc_lookup NAME | code_analysis FILE | project_analysis DIR)",
+        help="Compare a specific scenario (doc_lookup NAME | "
+        "code_analysis FILE | project_analysis DIR)",
     )
     parser.add_argument("--estimate", type=str, help="Estimate tokens for text")
     parser.add_argument("--estimate-file", type=str, help="Estimate tokens for a file")

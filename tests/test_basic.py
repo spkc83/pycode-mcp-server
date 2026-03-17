@@ -131,7 +131,7 @@ class TestCodeAnalyzer:
 class Calculator:
     def add(self, a: int, b: int) -> int:
         return a + b
-    
+
     def subtract(self, a: int, b: int) -> int:
         return a - b
 """
@@ -555,8 +555,10 @@ class TestStdlibDetection:
         return load_module_from_path("code_analyzer", SCRIPTS_DIR / "code_analyzer.py")
 
     def test_common_stdlib_not_third_party(self, module):
-        """Stdlib modules should NOT appear in third_party_dependencies."""
-        source = "import textwrap\nimport struct\nimport decimal\nimport traceback\nimport warnings\nimport signal\n"
+        source = (
+            "import textwrap\nimport struct\nimport decimal\n"
+            "import traceback\nimport warnings\nimport signal\n"
+        )
         result = module.analyze_source(source)
         third_party = result.get("third_party_dependencies", [])
         for mod in ["textwrap", "struct", "decimal", "traceback", "warnings", "signal"]:

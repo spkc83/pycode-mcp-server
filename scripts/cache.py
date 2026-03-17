@@ -66,7 +66,9 @@ class CacheManager:
             "created_at": _now_iso(),
             "updated_at": _now_iso(),
             "environment": {
-                "python_version": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
+                "python_version": (
+                    f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+                ),
                 "packages_hash": None,
                 "packages_count": 0,
                 "cached_at": None,

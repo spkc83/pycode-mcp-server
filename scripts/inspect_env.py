@@ -14,10 +14,9 @@ import importlib
 import inspect
 import json
 import sys
+from importlib.metadata import distributions
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
-
-from importlib.metadata import distributions
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(_SCRIPTS_DIR) not in sys.path:
@@ -184,7 +183,9 @@ def get_package_details(package_name: str) -> Optional[Dict[str, Any]]:
 def get_environment_info() -> Dict[str, Any]:
     """Get information about the Python environment."""
     info: Dict[str, Any] = {
-        "python_version": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
+        "python_version": (
+            f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+        ),
         "python_executable": sys.executable,
         "platform": sys.platform,
     }
