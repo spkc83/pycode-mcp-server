@@ -336,7 +336,7 @@ class TestCheckAntiPatternsMCP:
         if "error" in result:
             assert "ast-grep" in result["error"].lower() or "ast_grep" in result["error"].lower()
         else:
-            assert "violations" in result or "total_violations" in result
+            assert "findings" in result or "total_findings" in result
 
 
 class TestTransformCodeMCP:
