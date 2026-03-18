@@ -1,7 +1,8 @@
 """PyCode MCP Server — Python code intelligence for AI agents.
 
 Exposes local Python environment introspection, documentation lookup,
-code analysis, and diagnostics as MCP tools via the FastMCP framework.
+code analysis, diagnostics, structural code search, and text search
+as MCP tools via the FastMCP framework.
 
 Usage:
     python mcp_server.py                  # Run with stdio transport
@@ -38,7 +39,7 @@ def _create_mcp_server():
         params = {}
 
     if "version" in params:
-        kwargs["version"] = "4.0.0"
+        kwargs["version"] = "5.0.0"
     if "description" in params:
         kwargs["description"] = description
 
@@ -285,8 +286,189 @@ def prepare_codegen_context(
     return json.dumps(result, indent=2, default=str)
 
 
+# ---------------------------------------------------------------------------
+# Tool: search_text (ripgrep)
+# ---------------------------------------------------------------------------
+@mcp.tool()
+def search_text(
+    pattern: str,
+    project_path: str,
+    file_types: Optional[str] = None,
+    context_lines: int = 2,
+    max_results: int = 100,
+) -> str:
+    """Search for a regex pattern across all files using ripgrep.
+
+    Fast text search across all file types — Python, YAML, TOML, Markdown,
+    Dockerfiles, etc. Ideal for finding string literals, config keys, TODO
+    comments, error messages, and cross-language references that Jedi cannot see.
+
+    Requires ripgrep (rg) installed on the system PATH.
+
+    Args:
+        pattern: Regex pattern to search for (e.g. "TODO|FIXME", "DATABASE_URL").
+        project_path: Absolute path to the project root directory.
+        file_types: Comma-separated ripgrep type filters (e.g. "py", "py,yaml,toml").
+        context_lines: Number of context lines around each match (default 2).
+        max_results: Maximum number of matches to return (default 100).
+    """
+    from ripgrep_engine import search_text as _search_text
+
+    result = _search_text(
+        pattern=pattern,
+        project_path=project_path,
+        file_types=file_types,
+        context_lines=context_lines,
+        max_results=max_results,
+    )
+    return json.dumps(result, indent=2, default=str)
+
+
+# ---------------------------------------------------------------------------
+# Tool: find_config_references (ripgrep)
+# ---------------------------------------------------------------------------
+@mcp.tool()
+def find_config_references(
+    key: str,
+    project_path: str,
+    file_types: Optional[str] = None,
+) -> str:
+    """Trace a configuration key across Python, YAML, TOML, ENV, and Docker files.
+
+    Searches for a config key name across all common configuration and source
+    file types, then categorizes results by file type. Useful for understanding
+    where a setting is defined, read, and used throughout a project.
+
+    Requires ripgrep (rg) installed on the system PATH.
+
+    Args:
+        key: Configuration key to search for (e.g. "DATABASE_URL", "SECRET_KEY").
+        project_path: Absolute path to the project root directory.
+        file_types: Override default file type filters (comma-separated).
+    """
+    from ripgrep_engine import find_config_references as _find_config_references
+
+    result = _find_config_references(
+        key=key,
+        project_path=project_path,
+        file_types=file_types,
+    )
+    return json.dumps(result, indent=2, default=str)
+
+
+# ---------------------------------------------------------------------------
+# Tool: search_code_pattern (ast-grep)
+# ---------------------------------------------------------------------------
+@mcp.tool()
+def search_code_pattern(
+    pattern: str,
+    project_path: str,
+    language: str = "python",
+) -> str:
+    """Search for structural code patterns using AST matching.
+
+    Uses ast-grep metavariable syntax for structural (not textual) matching:
+      - $NAME matches any single AST node (identifier, expression, etc.)
+      - $$$ARGS matches multiple nodes (variadic — function args, body stmts)
+
+    Examples:
+      - "def $FUNC($$$PARAMS): $$$BODY" — all function definitions
+      - "try: $$$B except: $$$H" — bare except blocks
+      - "import $MODULE" — all import statements
+      - "$OBJ.get($KEY)" — all .get() calls
+
+    Requires ast-grep-py (pip install ast-grep-py).
+
+    Args:
+        pattern: AST pattern with metavariables.
+        project_path: Absolute path to the project root directory.
+        language: Target language for parsing (default "python").
+    """
+    from ast_grep_engine import search_code_pattern as _search_code_pattern
+
+    result = _search_code_pattern(
+        pattern=pattern,
+        project_path=project_path,
+        language=language,
+    )
+    return json.dumps(result, indent=2, default=str)
+
+
+# ---------------------------------------------------------------------------
+# Tool: check_anti_patterns (ast-grep)
+# ---------------------------------------------------------------------------
+@mcp.tool()
+def check_anti_patterns(
+    file_path: Optional[str] = None,
+    project_path: Optional[str] = None,
+    rule_file: Optional[str] = None,
+) -> str:
+    """Check Python code against structural anti-pattern rules.
+
+    Runs YAML-defined lint rules using AST matching to detect code smells
+    like bare except, assert without message, broad exception catches,
+    print statements, and wildcard imports. Provide either a single file
+    or a project directory.
+
+    Built-in rules are used by default. Pass a custom YAML rules file
+    to define your own patterns.
+
+    Requires ast-grep-py (pip install ast-grep-py).
+
+    Args:
+        file_path: Absolute path to a single .py file to check.
+        project_path: Absolute path to a project directory to scan.
+        rule_file: Optional path to a custom YAML rules file.
+    """
+    from ast_grep_engine import check_anti_patterns as _check_anti_patterns
+
+    result = _check_anti_patterns(
+        file_path=file_path,
+        project_path=project_path,
+        rule_file=rule_file,
+    )
+    return json.dumps(result, indent=2, default=str)
+
+
+# ---------------------------------------------------------------------------
+# Tool: transform_code (ast-grep)
+# ---------------------------------------------------------------------------
+@mcp.tool()
+def transform_code(
+    file_path: str,
+    pattern: str,
+    replacement: str,
+    dry_run: bool = True,
+) -> str:
+    """Transform code by replacing structural AST patterns.
+
+    Find structural patterns and replace them, preserving matched
+    metavariables. Defaults to dry-run mode (preview only).
+
+    Example: replace print() with logging.info():
+      pattern: "print($$$ARGS)"
+      replacement: "logging.info($$$ARGS)"
+
+    Requires ast-grep-py (pip install ast-grep-py).
+
+    Args:
+        file_path: Absolute path to the file to transform.
+        pattern: AST pattern to find (with metavariables).
+        replacement: Replacement pattern (can reference metavariables).
+        dry_run: If True (default), return preview without modifying file.
+    """
+    from ast_grep_engine import transform_code as _transform_code
+
+    result = _transform_code(
+        file_path=file_path,
+        pattern=pattern,
+        replacement=replacement,
+        dry_run=dry_run,
+    )
+    return json.dumps(result, indent=2, default=str)
+
+
 def _detect_package_manager(project_root: Path) -> str:
-    """Detect which package manager a project uses."""
     # Walk up to find project root markers
     current = project_root.resolve()
     for _ in range(10):  # max 10 levels up

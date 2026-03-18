@@ -1,0 +1,51 @@
+# Default anti-pattern rules for ast-grep structural analysis.
+#
+# Each rule defines:
+#   id:       Unique rule identifier
+#   pattern:  ast-grep pattern with metavariables ($NAME, $$$ARGS)
+#   message:  Human-readable explanation of why this is a problem
+#   severity: error | warning | info
+#
+# To use custom rules, create your own YAML file with the same structure
+# and pass it via the rule_file parameter or --rules CLI flag.
+
+rules:
+  - id: bare-except
+    pattern: |
+      try:
+          $$$BODY
+      except:
+          $$$HANDLER
+    message: >-
+      Bare 'except:' catches all exceptions including KeyboardInterrupt
+      and SystemExit. Use 'except Exception:' instead.
+    severity: warning
+
+  - id: assert-without-message
+    pattern: "assert $COND"
+    message: >-
+      Assert without a message makes debugging harder.
+      Add a descriptive message: assert condition, 'description'.
+    severity: info
+
+  - id: broad-exception-catch
+    pattern: |
+      except Exception:
+          $$$HANDLER
+    message: >-
+      Catching bare 'Exception' is too broad. Catch specific exception
+      types when possible.
+    severity: info
+
+  - id: print-statement
+    pattern: "print($$$ARGS)"
+    message: >-
+      Consider using the logging module instead of print() for production code.
+    severity: info
+
+  - id: star-import
+    pattern: "from $MODULE import *"
+    message: >-
+      Wildcard imports pollute the namespace and make it unclear which
+      names are present. Import specific names instead.
+    severity: warning

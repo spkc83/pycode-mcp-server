@@ -240,3 +240,154 @@ class TestPrepareCodegenContext:
         except ValueError:
             raised = True
         assert raised is True
+
+
+class TestSearchTextMCP:
+    def test_returns_valid_json(self, tmp_path):
+        from mcp_server import search_text
+
+        result = json.loads(search_text(pattern="TODO", project_path=str(tmp_path)))
+        assert isinstance(result, dict)
+
+    def test_returns_error_without_ripgrep(self, tmp_path):
+        from mcp_server import search_text
+
+        result = json.loads(search_text(pattern="test", project_path=str(tmp_path)))
+        if "error" in result:
+            assert "ripgrep" in result["error"].lower() or "rg" in result["error"].lower()
+        else:
+            assert "matches" in result or "total_matches" in result
+
+    def test_nonexistent_path(self):
+        from mcp_server import search_text
+
+        result = json.loads(search_text(pattern="x", project_path="/tmp/nonexistent_dir_xyz_12345"))
+        assert "error" in result
+
+
+class TestFindConfigReferencesMCP:
+    def test_returns_valid_json(self, tmp_path):
+        from mcp_server import find_config_references
+
+        result = json.loads(find_config_references(key="DATABASE_URL", project_path=str(tmp_path)))
+        assert isinstance(result, dict)
+
+    def test_returns_error_without_ripgrep(self, tmp_path):
+        from mcp_server import find_config_references
+
+        result = json.loads(find_config_references(key="SECRET_KEY", project_path=str(tmp_path)))
+        if "error" in result:
+            assert "ripgrep" in result["error"].lower() or "rg" in result["error"].lower()
+        else:
+            assert "categories" in result or "total_matches" in result
+
+
+class TestSearchCodePatternMCP:
+    def test_returns_valid_json(self, tmp_path):
+        from mcp_server import search_code_pattern
+
+        test_file = tmp_path / "sample.py"
+        test_file.write_text("def hello():\n    pass\n")
+
+        result = json.loads(
+            search_code_pattern(pattern="def $FUNC($$$PARAMS): $$$BODY", project_path=str(tmp_path))
+        )
+        assert isinstance(result, dict)
+
+    def test_returns_error_without_ast_grep(self, tmp_path):
+        from mcp_server import search_code_pattern
+
+        test_file = tmp_path / "sample.py"
+        test_file.write_text("x = 1\n")
+
+        result = json.loads(search_code_pattern(pattern="$X = 1", project_path=str(tmp_path)))
+        if "error" in result:
+            assert "ast-grep" in result["error"].lower() or "ast_grep" in result["error"].lower()
+        else:
+            assert "matches" in result or "total_matches" in result
+
+
+class TestCheckAntiPatternsMCP:
+    def test_returns_valid_json_for_file(self, tmp_path):
+        from mcp_server import check_anti_patterns
+
+        test_file = tmp_path / "sample.py"
+        test_file.write_text("try:\n    pass\nexcept:\n    pass\n")
+
+        result = json.loads(check_anti_patterns(file_path=str(test_file)))
+        assert isinstance(result, dict)
+
+    def test_returns_valid_json_for_project(self, tmp_path):
+        from mcp_server import check_anti_patterns
+
+        test_file = tmp_path / "sample.py"
+        test_file.write_text("import *\n")
+
+        result = json.loads(check_anti_patterns(project_path=str(tmp_path)))
+        assert isinstance(result, dict)
+
+    def test_returns_error_without_ast_grep(self, tmp_path):
+        from mcp_server import check_anti_patterns
+
+        test_file = tmp_path / "sample.py"
+        test_file.write_text("x = 1\n")
+
+        result = json.loads(check_anti_patterns(file_path=str(test_file)))
+        if "error" in result:
+            assert "ast-grep" in result["error"].lower() or "ast_grep" in result["error"].lower()
+        else:
+            assert "violations" in result or "total_violations" in result
+
+
+class TestTransformCodeMCP:
+    def test_returns_valid_json(self, tmp_path):
+        from mcp_server import transform_code
+
+        test_file = tmp_path / "sample.py"
+        test_file.write_text("print('hello')\n")
+
+        result = json.loads(
+            transform_code(
+                file_path=str(test_file),
+                pattern="print($$$ARGS)",
+                replacement="logging.info($$$ARGS)",
+                dry_run=True,
+            )
+        )
+        assert isinstance(result, dict)
+
+    def test_dry_run_does_not_modify_file(self, tmp_path):
+        from mcp_server import transform_code
+
+        test_file = tmp_path / "sample.py"
+        original = "print('hello')\n"
+        test_file.write_text(original)
+
+        json.loads(
+            transform_code(
+                file_path=str(test_file),
+                pattern="print($$$ARGS)",
+                replacement="logging.info($$$ARGS)",
+                dry_run=True,
+            )
+        )
+        assert test_file.read_text() == original
+
+    def test_returns_error_without_ast_grep(self, tmp_path):
+        from mcp_server import transform_code
+
+        test_file = tmp_path / "sample.py"
+        test_file.write_text("x = 1\n")
+
+        result = json.loads(
+            transform_code(
+                file_path=str(test_file),
+                pattern="$X = 1",
+                replacement="$X = 2",
+                dry_run=True,
+            )
+        )
+        if "error" in result:
+            assert "ast-grep" in result["error"].lower() or "ast_grep" in result["error"].lower()
+        else:
+            assert "dry_run" in result or "diff" in result or "changes" in result
