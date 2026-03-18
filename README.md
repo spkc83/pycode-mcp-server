@@ -4,6 +4,8 @@ A **Model Context Protocol (MCP) server** that provides Python code intelligence
 
 ## Features
 
+### Semantic Intelligence (Jedi)
+
 | Tool | Description |
 |------|-------------|
 | `get_local_docs` | Look up signatures, parameters, docstrings, and examples for any Python object |
@@ -16,6 +18,21 @@ A **Model Context Protocol (MCP) server** that provides Python code intelligence
 | `get_install_instructions` | Detect package manager (pip/poetry/uv) and suggest install commands |
 | `prepare_codegen_context` | Build budgeted, version-aware coding context with compatibility warnings |
 
+### Text Search (ripgrep)
+
+| Tool | Description |
+|------|-------------|
+| `search_text` | Fast regex search across all file types (Python, YAML, TOML, Markdown, etc.) |
+| `find_config_references` | Trace a config key across .py, .yaml, .toml, .env, Dockerfile with categorized results |
+
+### Structural Code Analysis (ast-grep)
+
+| Tool | Description |
+|------|-------------|
+| `search_code_pattern` | AST-aware pattern matching with metavariables ($NAME, $$$ARGS) |
+| `check_anti_patterns` | Run YAML-defined lint rules to detect code smells structurally |
+| `transform_code` | Pattern-based code rewriting with dry-run support and diff preview |
+
 ## Quick Start
 
 ### Installation
@@ -27,7 +44,16 @@ cd pycode-mcp-server
 
 # Install dependencies
 pip install -e .
+
+# Install optional enhanced features (ast-grep structural analysis)
+pip install -e ".[enhanced]"
 ```
+
+#### System Requirements
+
+- **Python** ≥ 3.10
+- **ripgrep** (optional, for `search_text` and `find_config_references`):
+  Install from https://github.com/BurntSushi/ripgrep#installation
 
 ### Running the Server
 
@@ -68,10 +94,10 @@ npx @modelcontextprotocol/inspector python mcp_server.py
 
 ```
 pycode-mcp-server/
-├── mcp_server.py              # MCP server entrypoint (FastMCP)
+├── mcp_server.py              # MCP server entrypoint (FastMCP, 14 tools)
 ├── pyproject.toml             # Package configuration
 ├── requirements.txt           # Dependencies
-├── VERSION                    # Version file (4.0.0)
+├── VERSION                    # Version file (5.0.0)
 ├── SKILL.md                   # General-purpose AI skill definition
 ├── CHANGELOG.md               # Version history
 ├── scripts/
@@ -83,6 +109,9 @@ pycode-mcp-server/
 │   ├── inspect_env.py         # Environment & package introspection
 │   ├── jedi_engine.py         # Jedi-powered code intelligence
 │   ├── project_analyzer.py    # Project-level analysis & import graphs
+│   ├── ripgrep_engine.py      # Ripgrep-powered text search
+│   ├── ast_grep_engine.py     # AST-grep structural search & transforms
+│   ├── default_rules.yml      # Built-in anti-pattern rules
 │   ├── benchmark.py           # Performance benchmarking suite
 │   ├── agent_eval.py          # Agent evaluation framework
 │   └── token_estimator.py     # Token cost estimation
@@ -92,7 +121,9 @@ pycode-mcp-server/
     ├── test_diagnostics.py    # Diagnostics tests
     ├── test_jedi_engine.py    # Jedi engine tests
     ├── test_mcp_server.py     # MCP server integration tests
-    └── test_project_analyzer.py  # Project analyzer tests
+    ├── test_project_analyzer.py  # Project analyzer tests
+    ├── test_ripgrep_engine.py # Ripgrep engine tests
+    └── test_ast_grep_engine.py # AST-grep engine tests
 ```
 
 ## Development

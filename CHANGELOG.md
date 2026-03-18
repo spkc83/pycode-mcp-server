@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.0.0] - 2026-03-17
+
+### Added
+
+* **Ripgrep text search engine** (`scripts/ripgrep_engine.py`):
+  - `search_text` — Fast regex search across all file types using ripgrep subprocess
+  - `find_config_references` — Trace config keys across .py, .yaml, .toml, .env, Dockerfile with categorized results
+  - Graceful degradation when ripgrep is not installed
+  - CLI with `search`, `config-refs`, and `status` subcommands
+
+* **AST-grep structural search engine** (`scripts/ast_grep_engine.py`):
+  - `search_code_pattern` — Structural AST pattern matching with metavariable syntax ($NAME, $$$ARGS)
+  - `check_anti_patterns` — YAML-defined lint rules for detecting code smells (bare except, broad catches, print statements, star imports)
+  - `transform_code` — Pattern-based code rewriting with dry-run support and diff preview
+  - Graceful degradation when ast-grep-py is not installed
+  - CLI with `search`, `anti-patterns`, `transform`, and `status` subcommands
+
+* **Default anti-pattern rules** (`scripts/default_rules.yml`):
+  - 5 built-in rules: `bare-except`, `assert-without-message`, `broad-exception-catch`, `print-statement`, `star-import`
+
+* **5 new MCP tools** in `mcp_server.py`:
+  - `search_text` — Ripgrep-powered regex search across all file types
+  - `find_config_references` — Config key tracing across Python, YAML, TOML, ENV, Docker
+  - `search_code_pattern` — AST structural pattern matching
+  - `check_anti_patterns` — Structural anti-pattern detection
+  - `transform_code` — AST-based code transformation with dry-run
+
+* Added `ast-grep-py` to `[project.optional-dependencies.enhanced]`
+* Added `tests/test_ripgrep_engine.py` — Tests for ripgrep engine functions
+* Added `tests/test_ast_grep_engine.py` — Tests for ast-grep engine functions
+* Added test classes for 5 new MCP tools in `tests/test_mcp_server.py`
+
+### Changed
+
+* Version bumped from 4.0.0 to 5.0.0
+* Total MCP tools: 9 → 14
+
 ## [4.0.0] - 2026-03-16
 
 ### Changed
