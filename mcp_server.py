@@ -56,7 +56,7 @@ mcp = _create_mcp_server()
 # ---------------------------------------------------------------------------
 # Tool: get_local_docs
 # ---------------------------------------------------------------------------
-@mcp.tool()
+@mcp.tool(structured_output=False)
 def get_local_docs(object_name: str, structured: bool = True) -> str:
     """Look up documentation for a Python object from the local environment.
 
@@ -78,7 +78,7 @@ def get_local_docs(object_name: str, structured: bool = True) -> str:
 # ---------------------------------------------------------------------------
 # Tool: inspect_environment
 # ---------------------------------------------------------------------------
-@mcp.tool()
+@mcp.tool(structured_output=False)
 def inspect_environment() -> str:
     """Get comprehensive information about the current Python environment.
 
@@ -94,7 +94,7 @@ def inspect_environment() -> str:
 # ---------------------------------------------------------------------------
 # Tool: get_package_details
 # ---------------------------------------------------------------------------
-@mcp.tool()
+@mcp.tool(structured_output=False)
 def get_package_details(package_name: str) -> str:
     """Get detailed information about a specific installed Python package.
 
@@ -118,7 +118,7 @@ def get_package_details(package_name: str) -> str:
 # ---------------------------------------------------------------------------
 # Tool: find_package_for_import
 # ---------------------------------------------------------------------------
-@mcp.tool()
+@mcp.tool(structured_output=False)
 def find_package_for_import(import_name: str) -> str:
     """Find which installed PyPI package provides a given import name.
 
@@ -145,7 +145,7 @@ def find_package_for_import(import_name: str) -> str:
 # ---------------------------------------------------------------------------
 # Tool: analyze_file
 # ---------------------------------------------------------------------------
-@mcp.tool()
+@mcp.tool(structured_output=False)
 def analyze_file(file_path: str) -> str:
     """Analyze a Python source file to extract its structure.
 
@@ -164,7 +164,7 @@ def analyze_file(file_path: str) -> str:
 # ---------------------------------------------------------------------------
 # Tool: analyze_project
 # ---------------------------------------------------------------------------
-@mcp.tool()
+@mcp.tool(structured_output=False)
 def analyze_project(
     project_path: str,
     include_import_graph: bool = True,
@@ -193,7 +193,7 @@ def analyze_project(
 # ---------------------------------------------------------------------------
 # Tool: get_diagnostics
 # ---------------------------------------------------------------------------
-@mcp.tool()
+@mcp.tool(structured_output=False)
 def get_diagnostics(
     file_path: str,
     type_check: bool = False,
@@ -216,7 +216,7 @@ def get_diagnostics(
 # ---------------------------------------------------------------------------
 # Tool: get_install_instructions
 # ---------------------------------------------------------------------------
-@mcp.tool()
+@mcp.tool(structured_output=False)
 def get_install_instructions(package_name: str, project_path: Optional[str] = None) -> str:
     """Get installation instructions for a Python package.
 
@@ -259,7 +259,7 @@ def get_install_instructions(package_name: str, project_path: Optional[str] = No
     return json.dumps(result, indent=2, default=str)
 
 
-@mcp.tool()
+@mcp.tool(structured_output=False)
 def prepare_codegen_context(
     object_name: Optional[str] = None,
     package_name: Optional[str] = None,
@@ -289,7 +289,7 @@ def prepare_codegen_context(
 # ---------------------------------------------------------------------------
 # Tool: search_text (ripgrep)
 # ---------------------------------------------------------------------------
-@mcp.tool()
+@mcp.tool(structured_output=False)
 def search_text(
     pattern: str,
     project_path: str,
@@ -327,7 +327,7 @@ def search_text(
 # ---------------------------------------------------------------------------
 # Tool: find_config_references (ripgrep)
 # ---------------------------------------------------------------------------
-@mcp.tool()
+@mcp.tool(structured_output=False)
 def find_config_references(
     key: str,
     project_path: str,
@@ -359,7 +359,7 @@ def find_config_references(
 # ---------------------------------------------------------------------------
 # Tool: search_code_pattern (ast-grep)
 # ---------------------------------------------------------------------------
-@mcp.tool()
+@mcp.tool(structured_output=False)
 def search_code_pattern(
     pattern: str,
     project_path: str,
@@ -397,7 +397,7 @@ def search_code_pattern(
 # ---------------------------------------------------------------------------
 # Tool: check_anti_patterns (ast-grep)
 # ---------------------------------------------------------------------------
-@mcp.tool()
+@mcp.tool(structured_output=False)
 def check_anti_patterns(
     file_path: Optional[str] = None,
     project_path: Optional[str] = None,
@@ -433,7 +433,7 @@ def check_anti_patterns(
 # ---------------------------------------------------------------------------
 # Tool: transform_code (ast-grep)
 # ---------------------------------------------------------------------------
-@mcp.tool()
+@mcp.tool(structured_output=False)
 def transform_code(
     file_path: str,
     pattern: str,
