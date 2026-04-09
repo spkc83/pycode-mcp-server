@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.0.1] - 2026-04-08
+
+### Fixed
+
+* **MCP tool discovery fails in Codex CLI and other strict MCP clients.**
+  MCP SDK v1.10.1 unconditionally emits `outputSchema` in `tools/list` responses,
+  even when the client negotiates protocol version `2024-11-05` (which predates
+  `outputSchema` support added in `2025-06-18`). Strict clients (Codex CLI,
+  Claude Code, Brave MCP) silently drop all tools when encountering the
+  unexpected field. Fixed by setting `structured_output=False` on all 14
+  `@mcp.tool()` decorators, which suppresses `outputSchema` from the wire
+  response while preserving full tool functionality.
+
+* **Codex CLI configuration guidance.** Codex CLI sanitizes MCP server names
+  by replacing hyphens with underscores internally, but the `/mcp` UI matches
+  tools using the raw config name — causing `Tools: (none)` when hyphens are
+  used. Additionally, Codex calls `env_clear()` before spawning stdio MCP
+  processes, only forwarding a narrow whitelist of environment variables
+  (HOME, PATH, SHELL, USER), which can cause the wrong Python binary to
+  resolve. Added documentation for correct `config.toml` setup with
+  underscored server names and absolute Python paths.
+
+### Changed
+
+* Version bumped from 5.0.0 to 5.0.1
+
 ## [5.0.0] - 2026-03-17
 
 ### Added

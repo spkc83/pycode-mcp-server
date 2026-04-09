@@ -90,6 +90,25 @@ Add to your `.cursor/mcp.json`:
 npx @modelcontextprotocol/inspector python mcp_server.py
 ```
 
+#### OpenAI Codex CLI
+
+Add to your `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.pycode_mcp_server]
+command = "/absolute/path/to/python"
+args = ["/absolute/path/to/pycode-mcp-server/mcp_server.py"]
+```
+
+> **Important — Codex CLI compatibility notes:**
+>
+> - **Use underscores in the server name**, not hyphens. Codex sanitizes names internally
+>   (`-` → `_`), but the `/mcp` UI matches against the raw config name. Using hyphens
+>   causes `Tools: (none)` in the UI even though tools load correctly.
+> - **Use an absolute path to the Python binary.** Codex calls `env_clear()` before
+>   spawning MCP subprocesses, stripping `VIRTUAL_ENV`, `CONDA_PREFIX`, and `PYTHONPATH`.
+>   A relative `python` may resolve to the wrong interpreter.
+
 ## Directory Structure
 
 ```
@@ -97,7 +116,7 @@ pycode-mcp-server/
 ├── mcp_server.py              # MCP server entrypoint (FastMCP, 14 tools)
 ├── pyproject.toml             # Package configuration
 ├── requirements.txt           # Dependencies
-├── VERSION                    # Version file (5.0.0)
+├── VERSION                    # Version file (5.0.1)
 ├── SKILL.md                   # General-purpose AI skill definition
 ├── CHANGELOG.md               # Version history
 ├── scripts/
